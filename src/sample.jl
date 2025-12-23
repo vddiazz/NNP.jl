@@ -139,19 +139,19 @@ function make_grid_reg(l1::Int64,l2::Int64,l3::Int64,step::Float64, out::String,
     print("done: reg")
 
     #----- data saving
-
+    
     if output_format == "jld2"
-        path = out*"/reg_$(l1)x$(l2)x$(l3)/grid.jld2"
-        @save path y1,y2,y3
+        path = out*"/reg_$(l1)x$(l2)x$(l3)/dy.jld2"
+        @save path dy1,dy2,dy3
 
     elseif output_format == "npy"
-        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/y1.npy", y1)
-        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/y2.npy", y2)
-        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/y3.npy", y3)
+        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/dy1.npy", dy1)
+        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/dy2.npy", dy2)
+        npzwrite(out*"/reg_$(l1)x$(l2)x$(l3)/dy3.npy", dy3)
     elseif output_format == "jls"
-        open(out*"/reg_$(l1)x$(l2)x$(l3)/y1.jls", "w") do io; serialize(io, y1); end
-        open(out*"/reg_$(l1)x$(l2)x$(l3)/y2.jls", "w") do io; serialize(io, y2); end
-        open(out*"/reg_$(l1)x$(l2)x$(l3)/y3.jls", "w") do io; serialize(io, y3); end
+        open(out*"/reg_$(l1)x$(l2)x$(l3)/dy1.jls", "w") do io; serialize(io, dy1); end
+        open(out*"/reg_$(l1)x$(l2)x$(l3)/dy2.jls", "w") do io; serialize(io, dy2); end
+        open(out*"/reg_$(l1)x$(l2)x$(l3)/dy3.jls", "w") do io; serialize(io, dy3); end
     end
 
     println()
@@ -160,8 +160,6 @@ function make_grid_reg(l1::Int64,l2::Int64,l3::Int64,step::Float64, out::String,
     println("#--------------------------------------------------#")
 
 end
-
-
 
 function make_grid_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, out::String,output_format::String)
 

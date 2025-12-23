@@ -8,18 +8,23 @@ using LoopVectorization
 
 #### baryon number
 
-function b_dens(y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},U,d1U,d2U,d3U)
+function b_dens(y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},model::String,grid_size::String,r_idx::Int64,Q_idx::Int64,out::String, output_format::String)
 
-    #----- prepare grid
-    
-    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+    #----- read data
+
+    U = open("/home/velni/phd/w/nnp/data/prod/$(model)/$(grid_size)/U_sym_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d1U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d2U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d3U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+
+    l1 = length(U[:,1,1,1]); l2 = length(U[1,:,1,1]); l3 = length(U[1,1,:,1])
 
     #----- main
     
     println()
     println("#--------------------------------------------------#")
     println()
-    println("Baryon number")
+    println("Baryon density")
     println()
 
     dens = zeros(Float64, l1,l2,l3)
@@ -30,24 +35,43 @@ function b_dens(y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},U,d1U,d
         end
     end
 
-    return dens
-
     #----- data saving
-    #=
+    
     if output_format == "jld2"
-        path = out*"bdens.jld2"
+        path = out*"/bdens.jld2"
         @save path dens
 
     elseif output_format == "npy"
-        npzwrite(out*"/$(type_of_grid)_$(l1)x$(l2)x$(l3)/y1.npy", y1)
-        npzwrite(out*"/$(type_of_grid)_$(l1)x$(l2)x$(l3)/y2.npy", y2)
-        npzwrite(out*"/$(type_of_grid)_$(l1)x$(l2)x$(l3)/y3.npy", y3)
+        npzwrite(out*"/bdens.npy", dens)
 
+    elseif output_format == "jls"
+        open(out*"/bdens_r=$(r_idx)_Q=$(Q_idx).jls", "w") do io; serialize(io, dens); end
     end
     
     println()
     println("data saved at "*out )
     println()
     println("#--------------------------------------------------#")
-    =#
+
+    return dens
+
 end
+
+function b_num(dens::Array{Float64})::Float64
+    
+    l1 = size(dens[:,1,1]); l2 = size(dens[1,:,1]); l3 = size(dens[1,1,:]); 
+
+    dy = 0.1    
+
+    #----- computations
+
+    B = (-1/(24*pi^2))*sum(dens)*(dy^3)
+
+    #----- output
+
+    return B
+
+end
+
+
+
