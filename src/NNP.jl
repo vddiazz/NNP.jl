@@ -22,6 +22,9 @@ include("interp.jl")
 export interp_2sky_no
 export interp_2sky_dx
 export interp_2sky_dy
+export interp_2sky_no_proy
+export interp_2sky_dx_proy
+export interp_2sky_dy_proy
 
 include("prod.jl")
 export field_value
@@ -42,6 +45,8 @@ export deriv_Q2
 
 include("metric.jl")
 export g_AB
+export g_AB_proy
+export g_AB_extra
 
 include("g1.jl"); export term_g1
 include("g2.jl"); export term_g2
