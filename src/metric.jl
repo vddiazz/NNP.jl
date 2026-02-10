@@ -6,6 +6,7 @@ using NPZ
 using LinearAlgebra
 using ProgressMeter
 using LoopVectorization
+using Interpolations
 
 ###
 
@@ -81,53 +82,49 @@ function g_AB_extra(A::Int64,B::Int64,factor::Float64,c6::Float64,r_idx::Int64,Q
     d1_old = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
     d2_old = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
     d3_old = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-
-    p1 = length(d1_old[:,1,1,1]); p2 = length(d1_old[1,:,1,1]); p3 = length(d1_old[1,1,:,1])
-
 	DA_old = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
     DB_old = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
-	#----- extrapolation (just add 0's in all directions)
+	l1,l2,l3,l4 = size(d1_old)
 
-	#p1e = round(Int64,factor*p1); p2e = round(Int64,factor*p2); p3e = round(Int64,factor*p3)
+	#----- extrapolation
 
-	#d1 = zeros(Float64, p1e,p2e,p3e,4)
-	#d2 = zeros(Float64, p1e,p2e,p3e,4)
-	#d3 = zeros(Float64, p1e,p2e,p3e,4)
-	#DA = zeros(Float64, p1e,p2e,p3e,4)
-	#DB = zeros(Float64, p1e,p2e,p3e,4)
+	# new arrays
+	l1e = round(Int64, factor*l1); l2e = round(Int64, factor*l2); l3e = round(Int64, factor*l3)
 
-	#l1 = p1*hD - 1; l2 = p2*hD - 1; l3 = p3*hD - 1
-	#l1e = p1e*hD - 1; l2e = p2e*hD - 1; l3e = p3e*hD - 1
+	d1 = zeros(eltype(d1_old), l1e,l2e,l3e,4)
+	d2 = zeros(eltype(d2_old), l1e,l2e,l3e,4)
+	d3 = zeros(eltype(d3_old), l1e,l2e,l3e,4)
+	DA = zeros(eltype(DA_old), l1e,l2e,l3e,4)
+	DB = zeros(eltype(DB_old), l1e,l2e,l3e,4)
 
-	#x1 = collect(-l1/2:hD:l1/2); x2 = collect(-l2/2:hD:l2/2); x3 = collect(-l3/2:hD:l3/2)
-	#x1e = collect(-l1e/2:hD:l1e/2); x2e = collect(-l2e/2:hD:l2e/2); x3e = collect(-l3e/2:hD:l3e/2)
+	# coordinate vectors
+	Y1 = hD .* (0:l1-1 .- (l1+1)/2); 	Y2 = hD .* (0:l2-1 .- (l2+1)/2); 	Y3 = hD .* (0:l3-1 .- (l3+1)/2)
+	Y1e = hD .* (0:l1e-1 .- (l1e+1)/2);	Y2e = hD .* (0:l2e-1 .- (l2e+1)/2); Y3e = hD .* (0:l3e-1 .- (l3e+1)/2)
 
-	#i1_old = findfirst(==(0.0),x1); i2_old = findfirst(==(0.0),x2); i3_old = findfirst(==(0.0),x3) 
-	#i1 = findfirst(==(0.0),x1e); i2 = findfirst(==(0.0),x2e); i3 = findfirst(==(0.0),x3e)
+	# extrapolation
+	for c in 1:4
+		e_d1 = extrapolate(
+				interpolate((Y1,Y2,Y3),d1_old[:,:,:,c], Gridded(Linear())),
+				Line())
+		e_d2 = extrapolate(
+				interpolate((Y1,Y2,Y3),d2_old[:,:,:,c], Gridded(Linear())),
+				Line())
+		e_d3 = extrapolate(
+				interpolate((Y1,Y2,Y3),d3_old[:,:,:,c], Gridded(Linear())),
+				Line())
+		e_DA = extrapolate(
+				interpolate((Y1,Y2,Y3),DA_old[:,:,:,c], Gridded(Linear())),
+				Line())
+		e_DB = extrapolate(
+				interpolate((Y1,Y2,Y3),DB_old[:,:,:,c], Gridded(Linear())),
+				Line())
 
-	#d1[(i1 - i1_old + 1):(i1 - i1_old + p1), (i2 - i2_old + 1):(i2 - i2_old + p2),(i3 - i3_old + 1):(i3 - i3_old + p3),:] .= d1_old
-	#d2[(i1 - i1_old + 1):(i1 - i1_old + p1), (i2 - i2_old + 1):(i2 - i2_old + p2),(i3 - i3_old + 1):(i3 - i3_old + p3),:] .= d2_old
-	#d3[(i1 - i1_old + 1):(i1 - i1_old + p1), (i2 - i2_old + 1):(i2 - i2_old + p2),(i3 - i3_old + 1):(i3 - i3_old + p3),:] .= d3_old
-	#DA[(i1 - i1_old + 1):(i1 - i1_old + p1), (i2 - i2_old + 1):(i2 - i2_old + p2),(i3 - i3_old + 1):(i3 - i3_old + p3),:] .= DA_old
-	#DB[(i1 - i1_old + 1):(i1 - i1_old + p1), (i2 - i2_old + 1):(i2 - i2_old + p2),(i3 - i3_old + 1):(i3 - i3_old + p3),:] .= DB_old
-
-	#----- extrapolation (just add 0's)
-	
-	p1e = round(Int64,factor*p1); p2e = round(Int64,factor*p2); p3e = round(Int64,factor*p3)
-
-	d1 = zeros(Float64, p1e,p2e,p3e,4)
-	d2 = zeros(Float64, p1e,p2e,p3e,4)
-	d3 = zeros(Float64, p1e,p2e,p3e,4)
-	DA = zeros(Float64, p1e,p2e,p3e,4)
-	DB = zeros(Float64, p1e,p2e,p3e,4)
-
-	@tturbo for c in 1:4, i3 in 1:p3, i2 in 1:p2, i1 in 1:p1
-		d1[i1,i2,i3,c] = d1_old[i1,i2,i3,c]
-		d2[i1,i2,i3,c] = d2_old[i1,i2,i3,c]
-		d3[i1,i2,i3,c] = d3_old[i1,i2,i3,c]
-		DA[i1,i2,i3,c] = DA_old[i1,i2,i3,c]
-		DB[i1,i2,i3,c] = DB_old[i1,i2,i3,c]
+		d1[:,:,:,c] = [e_d1(y1,y2,y3) for y1 in Y1e, y2 in Y2e, y3 in Y3e]
+		d2[:,:,:,c] = [e_d2(y1,y2,y3) for y1 in Y1e, y2 in Y2e, y3 in Y3e]
+		d3[:,:,:,c] = [e_d3(y1,y2,y3) for y1 in Y1e, y2 in Y2e, y3 in Y3e]
+		DA[:,:,:,c] = [e_DA(y1,y2,y3) for y1 in Y1e, y2 in Y2e, y3 in Y3e]
+		DB[:,:,:,c] = [e_DB(y1,y2,y3) for y1 in Y1e, y2 in Y2e, y3 in Y3e]
 	end
 
     #----- main
