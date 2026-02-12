@@ -99,8 +99,8 @@ function g_AB_extra(A::Int64,B::Int64,factor::Float64,c6::Float64,r_idx::Int64,Q
 	DB = zeros(eltype(DB_old), l1e,l2e,l3e,4)
 
 	# coordinate vectors
-	Y1 = hD .* (0:l1-1 .- (l1+1)/2); 	Y2 = hD .* (0:l2-1 .- (l2+1)/2); 	Y3 = hD .* (0:l3-1 .- (l3+1)/2)
-	Y1e = hD .* (0:l1e-1 .- (l1e+1)/2);	Y2e = hD .* (0:l2e-1 .- (l2e+1)/2); Y3e = hD .* (0:l3e-1 .- (l3e+1)/2)
+	Y1 = hD .* ((0:(l1-1)) .- (l1+1)/2); 	Y2 = hD .* ((0:(l2-1)) .- (l2+1)/2); 	Y3 = hD .* ((0:(l3-1)) .- (l3+1)/2)
+	Y1e = hD .* ((0:(l1e-1)) .- (l1e+1)/2);	Y2e = hD .* ((0:(l2e-1)) .- (l2e+1)/2); Y3e = hD .* ((0:(l3e-1)) .- (l3e+1)/2)
 
 	# extrapolation
 	for c in 1:4
