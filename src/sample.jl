@@ -257,13 +257,13 @@ function make_grid_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, ou
     for (r_idx,r) in enumerate(r_vals)
 	    for i in 1:length(yt3)
 	        if yt3[i] >= 1/2.
-                dy3_all[r_idx,i] = dr/2. - (yt3[i]*dyt3)/(4*(yt3[i]-1)^3)
+                dy3_all[r_idx,i] = - (yt3[i]*dyt3)/(4*(yt3[i]-1)^3)
             elseif (yt3[i] < 1/2.) && (yt3[i] >= 0.)
-                dy3_all[r_idx,i] = -2*(yt3[i]-1)*yt3[i]*dr + (4*yt3[i] + r*(2-4*yt3[i]) - 1)*dyt3
+                dy3_all[r_idx,i] = (4*yt3[i] + r*(2-4*yt3[i]) - 1)*dyt3
             elseif (yt3[i] > -1/2.) && (yt3[i] < 0)
-                dy3_all[r_idx,i] = -2*(abs(yt3[i])-1)*abs(yt3[i])*dr + (4*abs(yt3[i]) + r*(2-4*abs(yt3[i])) - 1)*dyt3
+                dy3_all[r_idx,i] = (4*abs(yt3[i]) + r*(2-4*abs(yt3[i])) - 1)*dyt3
 		    elseif yt3[i] <= -1/2.
-                dy3_all[r_idx,i] = dr/2. - (abs(yt3[i])*dyt3)/(4*(abs(yt3[i])-1)^3)
+                dy3_all[r_idx,i] = - (abs(yt3[i])*dyt3)/(4*(abs(yt3[i])-1)^3)
             end
         end
     end

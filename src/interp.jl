@@ -83,7 +83,7 @@ end
 
 function interp_2sky_dx(rtc,r_vals, model::String,deriv::String,hD::Float64, out::String,output_format::String)
 
-    data = readdlm("/home/velni/phd/w/nnp/data/profile_f/profile_f_$(model).txt")
+    data = readdlm("/home/vddiazz/phd/w/nnp/data/profile_f/profile_f_$(model).txt")
     r0 = data[:,1]; f0 = data[:,2]
 
     y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
@@ -184,7 +184,7 @@ end
 
 function interp_2sky_dy(rtc,r_vals, model::String,deriv::String,hD::Float64, out::String,output_format::String)
 
-    data = readdlm("/home/velni/phd/w/nnp/data/profile_f/profile_f_$(model).txt")
+    data = readdlm("/home/vddiazz/phd/w/nnp/data/profile_f/profile_f_$(model).txt")
     r0 = data[:,1]; f0 = data[:,2]
 
     y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]

@@ -40,6 +40,7 @@ export deriv_y_subtract
 export deriv_x
 export deriv_Q1
 export deriv_Q2
+export deriv_Q2_exact
 
 #-----
 
