@@ -567,3 +567,78 @@ function interp_2sky_dy_proy(rtc,r_vals, model::String,deriv::String,hD::Float64
     println()
     println("#--------------------------------------------------#")
 end
+
+function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
+
+    r0 = data[:,1]; f0 = data[:,2]
+
+    y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
+    l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
+
+    #----- main loop
+    
+    r0_itp = first(r0):0.01:last(r0)
+
+    itp_inner = interpolate(f0, BSpline(Linear()))
+    itp_scaled = scale(itp_inner, r0_itp)
+    function itp(x)
+        if x < first(r0)
+            return 3.14159
+        elseif x > last(r0)
+            return 0
+        else
+            return itp_scaled(x)
+        end
+    end
+
+	h = 0.005
+
+    println()
+    println("#--------------------------------------------------#")
+    println()
+    println("Radial function interpolation")
+    println()
+
+    @showprogress 1 "Computing..." for r_idx in 1:length(r_vals)
+        
+        matrix_df_plus = zeros(Float64, l1,l2,l3); matrix_df_minus = zeros(Float64, l1,l2,l3)
+
+        r = r_vals[r_idx]
+        
+        @inbounds @fastmath for k in 1:l3, j in 1:l2, i in 1:l1
+            temp_df_plus_p = itp(norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2]) + h ) 
+            temp_df_plus_m = itp(norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2]) - h ) 
+
+            temp_df_minus_p = itp(norm([y1[i],y2[j],y3[r_idx,k]] .- [0.,0.,r/2]) + h )
+			temp_df_minus_m = itp(norm([y1[i],y2[j],y3[r_idx,k]] .- [0.,0.,r/2]) - h )
+           
+
+            matrix_df_plus[i,j,k] = (temp_df_plus_p - temp_df_plus_m)/(2*h)
+            matrix_df_minus[i,j,k] = (temp_df_minus_p - temp_df_minus_m)/(2*h)
+        end 
+
+        #----- data saving
+
+        if output_format == "jld2"
+            path1 = out*"/df_$(model)_plus_r=$(r_idx).jld2"; path2 = out*"/df_$(model)_minus_r=$(r_idx).jld2"
+            @save path1 matrix_df_plus; @save path2 matrix_df_minus
+        elseif output_format == "npy"
+            npzwrite(out*"/df_$(model)_plus_r=$(r_idx).npy", matrix_df_plus); npzwrite(out*"/df_$(model)_minus_r=$(r_idx).npy", matrix_df_minus)
+        elseif output_format == "jls"
+            open(out*"/df_$(model)_plus_r=$(r_idx).jls", "w") do io
+                serialize(io, matrix_df_plus)
+            end
+            open(out*"/df_$(model)_minus_r=$(r_idx).jls", "w") do io
+                serialize(io, matrix_df_minus)
+            end
+        end
+
+    end
+        
+    println()
+    println("data saved at "*out )
+    println()
+    println("#--------------------------------------------------#")
+end
+
+

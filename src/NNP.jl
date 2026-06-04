@@ -25,6 +25,7 @@ export interp_2sky_dy
 export interp_2sky_no_proy
 export interp_2sky_dx_proy
 export interp_2sky_dy_proy
+export interp_df_2ky_np_proy
 
 include("prod.jl")
 export field_value
@@ -40,6 +41,8 @@ export deriv_y_subtract
 export deriv_x
 export deriv_Q1
 export deriv_Q2
+export deriv_x_exact
+export deriv_Q1_exact
 export deriv_Q2_exact
 
 #-----

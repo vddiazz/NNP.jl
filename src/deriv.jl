@@ -1178,11 +1178,11 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
 
 			#----- derivs
 
-			dr_m = -(y[dir]-xm[dir])/ar_m
-			dr_p = (y[dir]+xm[dir])/ar_p
+			dr_m = -(y[dir]-xm[dir])/(2*ar_m)
+			dr_p = (y[dir]+xm[dir])/(2*ar_p)
 
-			df_m = df_minus[i,j,k] # PENDING
-			df_p = df_plus[i,j,k] # PENDING
+			df_m = df_minus[i,j,k]
+			df_p = df_plus[i,j,k]
 
 			drinv_m = -(1/ar_m^2)*dr_m
 			drinv_p = -(1/ar_p^2)*dr_p
@@ -1219,14 +1219,14 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
 
 			#----- deriv of normalization
 
-			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N^(1/2))
+			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N)
 
             #----- return
 
-            dU_vals[i,j,k,1] = (dphiS_1*N - U_1*dN)/(N^2);
-			dU_vals[i,j,k,2] = (dphiS_2*N - U_2*dN)/(N^2);
-			dU_vals[i,j,k,3] = (dphiS_3*N - U_3*dN)/(N^2);
-			dU_vals[i,j,k,4] = (dphiS_4*N - U_4*dN)/(N^2);
+            dU_vals[i,j,k,1] = real(dphiS_1*N - U_1*dN)/(N^2);
+			dU_vals[i,j,k,2] = real(dphiS_2*N - U_2*dN)/(N^2);
+			dU_vals[i,j,k,3] = real(dphiS_3*N - U_3*dN)/(N^2);
+			dU_vals[i,j,k,4] = real(dphiS_4*N - U_4*dN)/(N^2);
         
         end
     end
@@ -1371,14 +1371,14 @@ function deriv_Q1_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
 
 			#----- deriv of normalization
 
-			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N^(1/2))
+			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N)
 
             #----- return
 
-            dU_vals[i,j,k,1] = (dphiS_1*N - U_1*dN)/(N^2);
-			dU_vals[i,j,k,2] = (dphiS_2*N - U_2*dN)/(N^2);
-			dU_vals[i,j,k,3] = (dphiS_3*N - U_3*dN)/(N^2);
-			dU_vals[i,j,k,4] = (dphiS_4*N - U_4*dN)/(N^2);
+            dU_vals[i,j,k,1] = real(dphiS_1*N - U_1*dN)/(N^2);
+			dU_vals[i,j,k,2] = real(dphiS_2*N - U_2*dN)/(N^2);
+			dU_vals[i,j,k,3] = real(dphiS_3*N - U_3*dN)/(N^2);
+			dU_vals[i,j,k,4] = real(dphiS_4*N - U_4*dN)/(N^2);
         
         end
     end
@@ -1523,14 +1523,14 @@ function deriv_Q2_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
 
 			#----- deriv of normalization
 
-			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N^(1/2))
+			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N)
 
             #----- return
 
-            dU_vals[i,j,k,1] = (dphiS_1*N - U_1*dN)/(N^2);
-			dU_vals[i,j,k,2] = (dphiS_2*N - U_2*dN)/(N^2);
-			dU_vals[i,j,k,3] = (dphiS_3*N - U_3*dN)/(N^2);
-			dU_vals[i,j,k,4] = (dphiS_4*N - U_4*dN)/(N^2);
+            dU_vals[i,j,k,1] = real(dphiS_1*N - U_1*dN)/(N^2);
+			dU_vals[i,j,k,2] = real(dphiS_2*N - U_2*dN)/(N^2);
+			dU_vals[i,j,k,3] = real(dphiS_3*N - U_3*dN)/(N^2);
+			dU_vals[i,j,k,4] = real(dphiS_4*N - U_4*dN)/(N^2);
         
         end
     end
