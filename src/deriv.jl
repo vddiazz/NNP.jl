@@ -1231,6 +1231,19 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
         end
     end
 
+	#----- interp missing NaN
+
+    if grid_size == "proy_80x80x160"
+        dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
+        dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
+    elseif grid_size == "proy_90x90x180"
+        dU_vals[45,45,45,:] .= dU_vals[45,45,44,:]
+        dU_vals[45,45,135,:] .= dU_vals[45,45,134,:]
+    elseif grid_size == "proy_100x100x200"
+        dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
+        dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
+    end
+
     return dU_vals
 end
 
@@ -1383,6 +1396,19 @@ function deriv_Q1_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
         end
     end
 
+	#----- interp missing NaN
+
+    if grid_size == "proy_80x80x160"
+        dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
+        dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
+    elseif grid_size == "proy_90x90x180"
+        dU_vals[45,45,45,:] .= dU_vals[45,45,44,:]
+        dU_vals[45,45,135,:] .= dU_vals[45,45,134,:]
+    elseif grid_size == "proy_100x100x200"
+        dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
+        dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
+    end
+
     return dU_vals
 end
 
@@ -1533,6 +1559,19 @@ function deriv_Q2_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
 			dU_vals[i,j,k,4] = real(dphiS_4*N - U_4*dN)/(N^2);
         
         end
+    end
+
+	#----- interp missing NaN
+
+    if grid_size == "proy_80x80x160"
+        dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
+        dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
+    elseif grid_size == "proy_90x90x180"
+        dU_vals[45,45,45,:] .= dU_vals[45,45,44,:]
+        dU_vals[45,45,135,:] .= dU_vals[45,45,134,:]
+    elseif grid_size == "proy_100x100x200"
+        dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
+        dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
     end
 
     return dU_vals
