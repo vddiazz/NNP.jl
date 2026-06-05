@@ -568,31 +568,81 @@ function interp_2sky_dy_proy(rtc,r_vals, model::String,deriv::String,hD::Float64
     println("#--------------------------------------------------#")
 end
 
+##########
+
+function cubic_spline(x, y)
+    n = length(x)
+    h = diff(x)
+
+    q = zeros(n)
+    for i in 2:n-1
+        q[i] = (3 / h[i]) * (y[i+1] - y[i]) -
+               (3 / h[i-1]) * (y[i] - y[i-1])
+    end
+
+    l = ones(n)
+    m = zeros(n)
+    z = zeros(n)
+
+    for i in 2:n-1
+        l[i] = 2 * (x[i+1] - x[i-1]) - h[i-1] * m[i-1]
+        m[i] = h[i] / l[i]
+        z[i] = (q[i] - h[i-1] * z[i-1]) / l[i]
+    end
+
+    c = zeros(n)
+    b = zeros(n-1)
+    d = zeros(n-1)
+    a = copy(y)
+
+    for j in n-1:-1:1
+        c[j] = z[j] - m[j] * c[j+1]
+        b[j] = (a[j+1] - a[j]) / h[j] -
+               h[j] * (c[j+1] + 2*c[j]) / 3
+        d[j] = (c[j+1] - c[j]) / (3 * h[j])
+    end
+
+    return a,b,c,d,x
+end
+
+
+function spline_eval(spline, r)
+    a,b,c,d,x = spline
+    n = length(x)
+
+    # outside boundaries
+    if r < x[1]
+        return 3.14159
+    elseif r > x[end]
+		return 0.0
+	end
+
+    # find interval
+    i = n-1
+    for j in 1:n-1
+        if x[j] <= r <= x[j+1]
+            i = j
+            break
+        end
+    end
+
+    dx = r - x[i]
+    return a[i] + b[i]*dx + c[i]*dx^2 + d[i]*dx^3
+end
+
 function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
 
     r0 = data[:,1]; f0 = data[:,2]
 
     y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
-    l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
+    l1 = length(y1); l2 = length(y2); l3 = size(y3,ndims(y3))
 
-    #----- main loop
-    
-    r0_itp = first(r0):0.01:last(r0)
+	h = 0.0001
 
-    itp_inner = interpolate(f0, BSpline(Linear()))
-    itp_scaled = scale(itp_inner, r0_itp)
-    function itp(x)
-        if x < first(r0)
-            return 3.14159
-        elseif x > last(r0)
-            return 0
-        else
-            return itp_scaled(x)
-        end
-    end
+	spline = cubic_spline(r0,f0)
 
-	h = 0.005
-
+    #----- main loop	
+ 
     println()
     println("#--------------------------------------------------#")
     println()
@@ -604,18 +654,17 @@ function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, 
         matrix_df_plus = zeros(Float64, l1,l2,l3); matrix_df_minus = zeros(Float64, l1,l2,l3)
 
         r = r_vals[r_idx]
-        
-        @inbounds @fastmath for k in 1:l3, j in 1:l2, i in 1:l1
-            temp_df_plus_p = itp(norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2]) + h ) 
-            temp_df_plus_m = itp(norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2]) - h ) 
-
-            temp_df_minus_p = itp(norm([y1[i],y2[j],y3[r_idx,k]] .- [0.,0.,r/2]) + h )
-			temp_df_minus_m = itp(norm([y1[i],y2[j],y3[r_idx,k]] .- [0.,0.,r/2]) - h )
-           
-
-            matrix_df_plus[i,j,k] = (temp_df_plus_p - temp_df_plus_m)/(2*h)
-            matrix_df_minus[i,j,k] = (temp_df_minus_p - temp_df_minus_m)/(2*h)
-        end 
+ 
+        @inbounds for k in 1:l3, j in 1:l2, i in 1:l1
+			Rp = sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k]+r/2)^2)
+			Rm = sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k]-r/2)^2)
+			
+			temp_df_plus = (spline_eval(spline, Rp+h) - spline_eval(spline, Rp-h))/(2*h)
+            temp_df_minus = (spline_eval(spline, Rm+h) - spline_eval(spline, Rm-h))/(2*h)
+            
+            matrix_df_plus[i,j,k] = temp_df_plus
+            matrix_df_minus[i,j,k] = temp_df_minus
+		end
 
         #----- data saving
 
@@ -634,11 +683,7 @@ function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, 
         end
 
     end
-        
-    println()
-    println("data saved at "*out )
-    println()
-    println("#--------------------------------------------------#")
+
 end
 
 

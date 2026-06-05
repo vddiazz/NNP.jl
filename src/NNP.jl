@@ -25,7 +25,10 @@ export interp_2sky_dy
 export interp_2sky_no_proy
 export interp_2sky_dx_proy
 export interp_2sky_dy_proy
-export interp_df_2ky_np_proy
+export interp_df_2sky_no_proy
+
+export natural_cubic_spline
+export spline_eval
 
 include("prod.jl")
 export field_value
