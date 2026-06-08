@@ -630,7 +630,7 @@ function spline_eval(spline, r)
     return a[i] + b[i]*dx + c[i]*dx^2 + d[i]*dx^3
 end
 
-function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
+function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, grid_size::String,model::String,data, out::String,output_format::String)
 
     r0 = data[:,1]; f0 = data[:,2]
 
@@ -664,6 +664,19 @@ function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, 
             
             matrix_df_plus[i,j,k] = temp_df_plus
             matrix_df_minus[i,j,k] = temp_df_minus
+		end
+
+		#----- interp missing NaN
+
+		if grid_size == "proy_80x80x160"
+			matrix_df_minus[40,40,40] = matrix_df_minus[40,40,39]
+			matrix_df_plus[40,40,120] = matrix_df_plus[40,40,119] 
+		elseif grid_size == "proy_90x90x180"
+			matrix_df_minus[45,45,45] = matrix_df_minus[45,45,44]
+			matrix_df_plus[45,45,135] = matrix_df_plus[45,45,134]
+		elseif grid_size == "proy_100x100x200"
+			matrix_df_minus[50,50,50] = matrix_df_minus[50,50,49]
+			matrix_df_plus[50,50,150] = matrix_df_plus[50,50,149]
 		end
 
         #----- data saving
