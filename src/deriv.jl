@@ -1358,10 +1358,10 @@ function deriv_Q1_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
 
 			#----- deriv of phi1
 
-            Zd1_11 = pos_p_1*(ddirs1_1[1,1]) + pos_p_2*(ddirs1_2[1,1]) + pos_p_3*(ddirs1_3[1,1])
-            Zd1_12 = pos_p_1*(ddirs1_1[1,2]) + pos_p_2*(ddirs1_2[1,2]) + pos_p_3*(ddirs1_3[1,2])
-            Zd1_21 = pos_p_1*(ddirs1_1[2,1]) + pos_p_2*(ddirs1_2[2,1]) + pos_p_3*(ddirs1_3[2,1])
-            Zd1_22 = pos_p_1*(ddirs1_1[2,2]) + pos_p_2*(ddirs1_2[2,2]) + pos_p_3*(ddirs1_3[2,2])
+            Zd1_11 = pos_m_1*(ddirs1_1[1,1]) + pos_m_2*(ddirs1_2[1,1]) + pos_m_3*(ddirs1_3[1,1])
+            Zd1_12 = pos_m_1*(ddirs1_1[1,2]) + pos_m_2*(ddirs1_2[1,2]) + pos_m_3*(ddirs1_3[1,2])
+            Zd1_21 = pos_m_1*(ddirs1_1[2,1]) + pos_m_2*(ddirs1_2[2,1]) + pos_m_3*(ddirs1_3[2,1])
+            Zd1_22 = pos_m_1*(ddirs1_1[2,2]) + pos_m_2*(ddirs1_2[2,2]) + pos_m_3*(ddirs1_3[2,2])
 
             tr_d11 = sigma1[1,1]*Zd1_11+sigma1[1,2]*Zd1_21 + sigma1[2,1]*Zd1_12+sigma1[2,2]*Zd1_22
             tr_d21 = sigma2[1,1]*Zd1_11+sigma2[1,2]*Zd1_21 + sigma2[2,1]*Zd1_12+sigma2[2,2]*Zd1_22
@@ -1371,9 +1371,9 @@ function deriv_Q1_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
             ddirs1_param_3 = 0.25*1im*tr_d21; 
             ddirs1_param_4 = 0.25*1im*tr_d31
 
-			dphi1_2 = sin_f_p*(1/ar_p)*ddirs1_param_2;
-			dphi1_3 = sin_f_p*(1/ar_p)*ddirs1_param_3;
-			dphi1_4 = sin_f_p*(1/ar_p)*ddirs1_param_4;
+			dphi1_2 = sin_f_m*(1/ar_m)*ddirs1_param_2;
+			dphi1_3 = sin_f_m*(1/ar_m)*ddirs1_param_3;
+			dphi1_4 = sin_f_m*(1/ar_m)*ddirs1_param_4;
 
 			#----- deriv of phiS
 			
