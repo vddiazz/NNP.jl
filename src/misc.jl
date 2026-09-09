@@ -8,25 +8,12 @@ using LoopVectorization
 
 #### baryon number
 
-function b_dens(y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},model::String,grid_size::String,r_idx::Int64,Q_idx::Int64,out::String, output_format::String)
-
-    #----- read data
-
-    U = open("/home/velni/phd/w/nnp/data/prod/$(model)/$(grid_size)/U_sym_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d1U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d2U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d3U = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+function b_dens(U::Array{Float64},d1U::Array{Float64},d2U::Array{Float64},d3U::Array{Float64},out::String, output_format::String)
 
     l1 = length(U[:,1,1,1]); l2 = length(U[1,:,1,1]); l3 = length(U[1,1,:,1])
 
     #----- main
     
-    println()
-    println("#--------------------------------------------------#")
-    println()
-    println("Baryon density")
-    println()
-
     dens = zeros(Float64, l1,l2,l3)
 
     @showprogress 1 "Computing..." for k in 1:l3
@@ -35,37 +22,27 @@ function b_dens(y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},model::
         end
     end
 
-    #----- data saving
-    
-    if output_format == "jld2"
-        path = out*"/bdens.jld2"
-        @save path dens
-
-    elseif output_format == "npy"
-        npzwrite(out*"/bdens.npy", dens)
-
-    elseif output_format == "jls"
-        open(out*"/bdens_r=$(r_idx)_Q=$(Q_idx).jls", "w") do io; serialize(io, dens); end
-    end
-    
-    println()
-    println("data saved at "*out )
-    println()
-    println("#--------------------------------------------------#")
-
     return dens
 
 end
 
-function b_num(dens::Array{Float64})::Float64
+function b_num(dens::Array{Float64},dy1::Array{Float64},dy2::Array{Float64},dy3::Array{Float64})::Float64
     
-    l1 = size(dens[:,1,1]); l2 = size(dens[1,:,1]); l3 = size(dens[1,1,:]); 
-
-    dy = 0.1    
+    l1 = length(dy1); l2 = length(dy2); l3 = length(dy3) 
 
     #----- computations
 
-    B = (-1/(24*pi^2))*sum(dens)*(dy^3)
+	B = 0
+
+	for k in 1:l3 
+		for j in 1:l2
+			for i in 1:l1
+				
+				B = B + (-1/(24*pi^2))*dens[i,j,k]*dy1[i]*dy2[j]*dy3[k]
+			
+			end
+		end
+	end
 
     #----- output
 
