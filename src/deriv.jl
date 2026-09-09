@@ -819,11 +819,11 @@ end
 
 ###
 
-function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},f_minus_m::Array{Float64},f_minus_p::Array{Float64},f_plus_m::Array{Float64},f_plus_p::Array{Float64},r_val::Float64,Q1::Matrix{ComplexF64}, Q2::Matrix{ComplexF64}, model::String)
+function deriv_y_subtract(dir::String,grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},hD_p1,hD_p2,hD_p3,hD_m1,hD_m2,hD_m3,f_minus_m::Array{Float64},f_minus_p::Array{Float64},f_plus_m::Array{Float64},f_plus_p::Array{Float64},r_val::Float64,Q1::Matrix{ComplexF64}, Q2::Matrix{ComplexF64}, model::String)
 
     #----- prepare params
-
-    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+    
+	l1 = length(y1); l2 = length(y2); l3 = length(y3)
 
     @assert eltype(y1) == Float64 && eltype(y2) == Float64 && eltype(y3) == Float64
     @assert eltype(f_minus_m) == Float64 && eltype(f_minus_p) == Float64 && eltype(f_plus_m) == Float64 && eltype(f_plus_p) == Float64
@@ -844,6 +844,8 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
     
     U_vals_m = zeros(Float64, l1,l2,l3,4)
     U_vals_p = zeros(Float64, l1,l2,l3,4)
+	hDps = zeros(Float64, l1,l2,l3)
+	hDms = zeros(Float64, l1,l2,l3)
 
     #println()
     #println("#--------------------------------------------------#")
@@ -857,19 +859,19 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
             #----- params        
 
             if dir == "1"
-                y[1] = y1[i] - hD; y[2] = y2[j]; y[3] = y3[k]
+                y[1] = hD_m1[i]; y[2] = y2[j]; y[3] = y3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
+				hDms[i,j,k] = abs(hD_m1[i] - y1[i])
             elseif dir == "2"
-                y[1] = y1[i]; y[2] = y2[j] - hD; y[3] = y3[k]
+                y[1] = y1[i]; y[2] = hD_m2[j]; y[3] = y3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
+				hDms[i,j,k] = abs(hD_m2[j] - y2[j])
             elseif dir == "3"
-                y[1] = y1[i]; y[2] = y2[j]; y[3] = y3[k] - hD
+                y[1] = y1[i]; y[2] = y2[j]; y[3] = hD_m3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
+				hDms[i,j,k] = abs(hD_m3[k] - y3[k])
             end
 
-            y[1] = y1[i]; y[2] = y2[j]; y[3] = y3[k]
-            xm[1] = 0; xm[2] = 0; xm[3] = r_val
-            
             pos_p_1 = y[1]+xm[1]/2.; pos_p_2 = y[2]+xm[2]/2.; pos_p_3 = y[3]+xm[3]/2.
             pos_m_1 = y[1]-xm[1]/2.; pos_m_2 = y[2]-xm[2]/2.; pos_m_3 = y[3]-xm[3]/2.
 
@@ -945,8 +947,8 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
 
             #----- return
 
-            U_vals_m[i,j,k,1] = (1/N)*U_1; U_vals_m[i,j,k,2] = (1/N)*U_2; U_vals_m[i,j,k,3] = (1/N)*U_3; U_vals_m[i,j,k,4] = (1/N)*U_4
-        
+            U_vals_m[i,j,k,1] = (1/N)*U_1; U_vals_m[i,j,k,2] = (1/N)*U_2; U_vals_m[i,j,k,3] = (1/N)*U_3; U_vals_m[i,j,k,4] = (1/N)*U_4        
+
         end
     end
 
@@ -956,14 +958,17 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
             #----- params        
 
             if dir == "1"
-                y[1] = y1[i] + hD; y[2] = y2[j]; y[3] = y3[k]
+                y[1] = hD_p1[i]; y[2] = y2[j]; y[3] = y3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
-            elseif dir == "2"
-                y[1] = y1[i]; y[2] = y2[j] + hD; y[3] = y3[k]
+				hDps[i,j,k] = abs(hD_p1[i] - y1[i])          
+			elseif dir == "2"
+                y[1] = y1[i]; y[2] = hD_p2[j]; y[3] = y3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
+				hDps[i,j,k] = abs(hD_p2[i] - y2[i])
             elseif dir == "3"
-                y[1] = y1[i]; y[2] = y2[j]; y[3] = y3[k] + hD
+                y[1] = y1[i]; y[2] = y2[j]; y[3] = hD_p3[k]
                 xm[1] = 0; xm[2] = 0; xm[3] = r_val
+				hDps[i,j,k] = abs(hD_p3[i] - y3[i])
             end
             
             pos_p_1 = y[1]+xm[1]/2.; pos_p_2 = y[2]+xm[2]/2.; pos_p_3 = y[3]+xm[3]/2.
@@ -1016,9 +1021,9 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
             tr_22 = sigma2[1,1]*Z2_11+sigma2[1,2]*Z2_21 + sigma2[2,1]*Z2_12+sigma2[2,2]*Z2_22
             tr_32 = sigma3[1,1]*Z2_11+sigma3[1,2]*Z2_21 + sigma3[2,1]*Z2_12+sigma3[2,2]*Z2_22
 
-            dirs2_param_1 = 0.5*(Z2_11+Z2_22); 
-            dirs2_param_2 = 0.5*tr_12; 
-            dirs2_param_3 = 0.5*tr_22; 
+            dirs2_param_1 = 0.5*(Z2_11+Z2_22);
+            dirs2_param_2 = 0.5*tr_12;
+            dirs2_param_3 = 0.5*tr_22;
             dirs2_param_4 = 0.5*tr_32
             
             phi2_1 = cos_f_p + dirs2_param_1; 
@@ -1047,10 +1052,10 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
     end
 
     dU_vals = zeros(Float64, l1,l2,l3,4)
-    dU_vals .= (1/(2*hD)).*(U_vals_p .- U_vals_m)
+    dU_vals .= (1 ./ (hDps.+hDms)) .* (U_vals_p .- U_vals_m)
 
     #----- fix missing NaN
-
+	#==
     if grid_size == "proy_80x80x160"
         dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
         dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
@@ -1061,7 +1066,8 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
         dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
         dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
     end
-            
+	==#       
+     
     return dU_vals
 end
 
