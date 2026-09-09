@@ -17,6 +17,7 @@ export make_r
 #export make_Q
 export make_grid_reg
 export make_grid_proy
+export make_hD_proy
 
 include("interp.jl")
 export interp_2sky_no
