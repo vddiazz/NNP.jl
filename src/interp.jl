@@ -461,12 +461,15 @@ end
 
 #####
 
-function interp_2sky_dy_proy(rtc,r_vals, model::String,data,deriv::String,hD::Float64, out::String,output_format::String)
+function interp_2sky_dy_proy(rtc,hDps,hDms,r_vals, model::String,data,deriv::String, out::String,output_format::String)
 
     r0 = data[:,1]; f0 = data[:,2]
 
     y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
-    l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
+	hD_p1 = hDps[1]; hD_p2 = hDps[2]; hD_p3 = hDps[3]
+	hD_m1 = hDms[1]; hD_m2 = hDms[2]; hD_m3 = hDms[3]    
+
+	l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
 
     #----- main loop
 
@@ -500,17 +503,17 @@ function interp_2sky_dy_proy(rtc,r_vals, model::String,data,deriv::String,hD::Fl
         r = r_vals[r_idx]
    
         if deriv == "y1"
-            y1_p = y1 .+ hD; y1_m = y1 .- hD
+            y1_p = hD_p1; y1_m = hD_m1
             y2_p = y2; y2_m = y2
             y3_p = y3[r_idx,:]; y3_m = y3[r_idx,:]
         elseif deriv == "y2"
             y1_p = y1; y1_m = y1
-            y2_p = y2 .+ hD; y2_m = y2 .- hD
+            y2_p = hD_p2; y2_m = hD_m2
             y3_p = y3[r_idx,:]; y3_m = y3[r_idx,:] 
         elseif deriv == "y3"
             y1_p = y1; y1_m = y1
             y2_p = y2; y2_m = y2
-            y3_p = y3[r_idx,:] .+ hD; y3_m = y3[r_idx,:] .- hD
+            y3_p = hD_p3[r_idx,:]; y3_m = hD_m3[r_idx,:]
         end
 
         x = [0,0,r]/2.
