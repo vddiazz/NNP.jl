@@ -182,7 +182,7 @@ end
 function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size::String,model::String,metric_terms::Vector{<:Function},out::String,output_format::String)::Float64
 
     #----- prepare fields
-
+	#==
     dy1 = open("/lustre/HQCD/victor.diaz/nnp/data/sample/$(grid_size)/dy1.jls", "r") do io; deserialize(io); end
     dy2 = open("/lustre/HQCD/victor.diaz/nnp/data/sample/$(grid_size)/dy2.jls", "r") do io; deserialize(io); end
     dy3_all = open("/lustre/HQCD/victor.diaz/nnp/data/sample/$(grid_size)/dy3.jls", "r") do io; deserialize(io); end
@@ -191,6 +191,16 @@ function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_
     d1 = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
     d2 = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
     d3 = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+	==#
+
+    dy1 = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy1.jls", "r") do io; deserialize(io); end
+    dy2 = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy2.jls", "r") do io; deserialize(io); end
+    dy3_all = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy3.jls", "r") do io; deserialize(io); end
+    dy3 = dy3_all[r_idx,:]
+
+    d1 = open("/home/vddiazz/Desktop/temp_nnp/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d2 = open("/home/vddiazz/Desktop/temp_nnp/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d3 = open("/home/vddiazz/Desktop/temp_nnp/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     l1 = length(d1[:,1,1,1]); l2 = length(d1[1,:,1,1]); l3 = length(d1[1,1,:,1])
 
@@ -202,8 +212,8 @@ function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_
     println("Metric (A=$(A), B=$(B)) --- r_idx=$(r_idx), Q_idx=$(Q_idx)")
     println()
  
-    DA = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    DB = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DA = open("/home/vddiazz/Desktop/temp_nnp/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DB = open("/home/vddiazz/Desktop/temp_nnp/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     g = 0.
 

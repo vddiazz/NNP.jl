@@ -845,11 +845,11 @@ function deriv_y_subtract(dir::String,grid_size::String,hD::Float64,y1::Array{Fl
     U_vals_m = zeros(Float64, l1,l2,l3,4)
     U_vals_p = zeros(Float64, l1,l2,l3,4)
 
-    println()
-    println("#--------------------------------------------------#")
-    println()
-    println("2-skyrmion field -- y$(dir) derivative")
-    println()
+    #println()
+    #println("#--------------------------------------------------#")
+    #println()
+    #println("2-skyrmion field -- y$(dir) derivative")
+    #println()
 
     @showprogress 1 "Computing field (m)..." for k in 1:l3
         @inbounds @fastmath for j in 1:l2, i in 1:l1

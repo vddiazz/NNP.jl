@@ -292,3 +292,122 @@ function make_grid_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, ou
     println("#--------------------------------------------------#")
 
 end
+
+function make_hD_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, out::String,output_format::String)
+
+    if (output_format != "jld2") && (output_format != "npy") && (output_format != "jls")
+        println("invalid output data type")
+        return
+    end
+    
+    #-----
+   
+    dyt1 = 2. /p1
+    dyt2 = 2. /p2
+    dyt3 = 2. /p3
+
+    dr = 0.1
+
+    thD_p1 = collect(-1+dyt1:dyt1:1-dyt1) .+ 0.001
+    thD_p2 = collect(-1+dyt2:dyt2:1-dyt2) .+ 0.001
+    thD_p3 = collect(-1+dyt3:dyt3:1-dyt3) .+ 0.001
+
+    thD_m1 = collect(-1+dyt1:dyt1:1-dyt1) .- 0.001
+    thD_m2 = collect(-1+dyt2:dyt2:1-dyt2) .- 0.001
+    thD_m3 = collect(-1+dyt3:dyt3:1-dyt3) .- 0.001
+
+    #----- main
+     
+    println()
+    println("#--------------------------------------------------#")
+    println()
+    println("Generating grid...")
+    println()
+
+	# +hD grid
+
+    hD_p1 = zeros(Float64, length(thD_p1))
+    for i in 1:length(thD_p1)    
+        hD_p1[i] = thD_p1[i]/(1-thD_p1[i]^2)
+    end
+
+    hD_p2 = zeros(Float64, length(thD_p2))
+    for i in 1:length(thD_p2)
+        hD_p2[i] = thD_p2[i]/(1-thD_p2[i]^2)
+    end
+
+    hD_p3 = zeros(Float64, length(r_vals),length(thD_p3))
+    for (r_idx,r) in enumerate(r_vals)
+        for i in 1:length(thD_p3)
+            sec1 = r/2. + (2*abs(thD_p3[i])-1)/(8*(abs(thD_p3[i])-1)^2)
+            sec2 = abs(thD_p3[i])*(2*r*(1-abs(thD_p3[i]))-(1-2*abs(thD_p3[i])))
+
+            if thD_p3[i] >= 1/2.
+                hD_p3[r_idx,i] = sec1
+            elseif (0.0 < thD_p3[i]) && (thD_p3[i] < 1/2.)
+                hD_p3[r_idx,i] = sec2
+            elseif (-1/2. < thD_p3[i]) && (thD_p3[i] < 0.0)
+                hD_p3[r_idx,i] = -sec2
+            elseif thD_p3[i] <= -1/2.
+                hD_p3[r_idx,i] = -sec1
+            end
+        end
+    end
+ 
+	# -hD grid
+
+    hD_m1 = zeros(Float64, length(thD_m1))
+    for i in 1:length(thD_m1)    
+        hD_m1[i] = thD_m1[i]/(1-thD_m1[i]^2)
+    end
+
+    hD_m2 = zeros(Float64, length(thD_m2))
+    for i in 1:length(thD_m2)
+        hD_m2[i] = thD_m2[i]/(1-thD_m2[i]^2)
+    end
+
+    hD_m3 = zeros(Float64, length(r_vals),length(thD_m3))
+    for (r_idx,r) in enumerate(r_vals)
+        for i in 1:length(thD_m3)
+            sec1 = r/2. + (2*abs(thD_m3[i])-1)/(8*(abs(thD_m3[i])-1)^2)
+            sec2 = abs(thD_m3[i])*(2*r*(1-abs(thD_m3[i]))-(1-2*abs(thD_m3[i])))
+
+            if thD_m3[i] >= 1/2.
+                hD_m3[r_idx,i] = sec1
+            elseif (0.0 < thD_m3[i]) && (thD_m3[i] < 1/2.)
+                hD_m3[r_idx,i] = sec2
+            elseif (-1/2. < thD_m3[i]) && (thD_m3[i] < 0.0)
+                hD_m3[r_idx,i] = -sec2
+            elseif thD_m3[i] <= -1/2.
+                hD_m3[r_idx,i] = -sec1
+            end
+        end
+    end
+ 
+    #----- data saving
+
+	if output_format == "jld2"
+        #path = out*"/proy_$(p1)x$(p2)x$(p3)/grid.jld2"
+        #@save path y1,y2,y3
+    
+	elseif output_format == "npy"
+        #npzwrite(out*"/proy_$(p1)x$(p2)x$(p3)/y1.npy", y1)
+        #npzwrite(out*"/proy_$(p1)x$(p2)x$(p3)/y2.npy", y2)
+        #npzwrite(out*"/proy_$(p1)x$(p2)x$(p3)/y3.npy", y3)
+        
+	elseif output_format == "jls"
+        open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_p1.jls", "w") do io; serialize(io, hD_p1); end
+        open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_p2.jls", "w") do io; serialize(io, hD_p2); end
+        open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_p3.jls", "w") do io; serialize(io, hD_p3); end
+    
+		open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_m1.jls", "w") do io; serialize(io, hD_m1); end
+        open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_m2.jls", "w") do io; serialize(io, hD_m2); end
+        open(out*"/proy_$(p1)x$(p2)x$(p3)/hD_m3.jls", "w") do io; serialize(io, hD_m3); end
+	end
+
+    println()
+    println("data saved at "*out*"/proy_$(p1)x$(p2)x$(p3)" )
+    println()
+    println("#--------------------------------------------------#")
+
+end
