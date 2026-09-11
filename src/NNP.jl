@@ -42,6 +42,7 @@ export FAST_make_field
 include("deriv.jl")
 export deriv_y
 export deriv_y_subtract
+export deriv_y_proy
 export deriv_x
 export deriv_Q1
 export deriv_Q2

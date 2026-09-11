@@ -1054,21 +1054,96 @@ function deriv_y_subtract(dir::String,grid_size::String,y1::Array{Float64},y2::A
     dU_vals = zeros(Float64, l1,l2,l3,4)
     dU_vals .= (1 ./ (hDps.+hDms)) .* (U_vals_p .- U_vals_m)
 
-    #----- fix missing NaN
-	#==
-    if grid_size == "proy_80x80x160"
-        dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
-        dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
-    elseif grid_size == "proy_90x90x180"
-        dU_vals[45,45,45,:] .= dU_vals[45,45,44,:]
-        dU_vals[45,45,135,:] .= dU_vals[45,45,134,:]
-    elseif grid_size == "proy_100x100x200"
-        dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
-        dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
-    end
-	==#       
-     
     return dU_vals
+end
+
+function deriv_y_proy(dir::String,grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},field::Array{Float64},r_idx::Int,Q_idx::Int, model::String)
+
+    #----- params
+
+    @assert eltype(field) == Float64
+    field :: Array{Float64}
+
+    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+
+    d_vals = zeros(Float64, l1,l2,l3,4)
+    @assert eltype(field) == Float64
+    d_vals :: Array{Float64}
+
+    #----- main loops
+
+    if dir == "1"
+
+        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
+            p1 = field[i+1,j,k,c]
+            p2 = field[i+2,j,k,c]
+            m1 = field[i-1,j,k,c]
+            m2 = field[i-2,j,k,c]
+			f0 = field[i,j,k,c]                        
+
+			hp1 = y1[i+1] - y1[i]
+			hp2 = y1[i+2] - y1[i]
+			hm1 = y1[i] - y1[i-1]
+			hm2 = y1[i] - y1[i-2]
+
+			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
+			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
+			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
+			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
+			c0 = -(cm2+cm1+cp1+cp2)
+
+            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2
+        end
+
+    elseif dir == "2"
+
+        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
+            p1 = field[i,j+1,k,c]
+            p2 = field[i,j+2,k,c]
+            m1 = field[i,j-1,k,c]
+            m2 = field[i,j-2,k,c]
+ 			f0 = field[i,j,k,c]
+
+			hp1 = y2[j+1] - y2[j]
+			hp2 = y2[j+2] - y2[j]
+			hm1 = y2[j] - y2[j-1]
+			hm2 = y2[j] - y2[j-2]
+
+			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
+			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
+			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
+			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
+			c0 = -(cm2+cm1+cp1+cp2)
+
+            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2                       
+        end
+    
+    elseif dir == "3"
+        
+        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
+            p1 = field[i,j,k+1,c]
+            p2 = field[i,j,k+2,c]
+            m1 = field[i,j,k-1,c]
+            m2 = field[i,j,k-2,c]
+ 			f0 = field[i,j,k,c]
+
+			hp1 = y3[k+1] - y3[k]
+			hp2 = y3[k+2] - y3[k]
+			hm1 = y3[k] - y3[k-1]
+			hm2 = y3[k] - y3[k-2]
+
+			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
+			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
+			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
+			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
+			c0 = -(cm2+cm1+cp1+cp2)
+
+            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2
+        end
+    end
+
+	return d_vals
+
 end
 
 ### exact

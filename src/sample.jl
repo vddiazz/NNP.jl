@@ -293,7 +293,7 @@ function make_grid_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, ou
 
 end
 
-function make_hD_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, out::String,output_format::String)
+function make_hD_proy(p1::Int64,p2::Int64,p3::Int64,hD::Float64,r_vals::Array{Float64}, out::String,output_format::String)
 
     if (output_format != "jld2") && (output_format != "npy") && (output_format != "jls")
         println("invalid output data type")
@@ -308,13 +308,13 @@ function make_hD_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, out:
 
     dr = 0.1
 
-    thD_p1 = collect(-1+dyt1:dyt1:1-dyt1) .+ 0.001
-    thD_p2 = collect(-1+dyt2:dyt2:1-dyt2) .+ 0.001
-    thD_p3 = collect(-1+dyt3:dyt3:1-dyt3) .+ 0.001
+    thD_p1 = collect(-1+dyt1:dyt1:1-dyt1) .+ hD
+    thD_p2 = collect(-1+dyt2:dyt2:1-dyt2) .+ hD
+    thD_p3 = collect(-1+dyt3:dyt3:1-dyt3) .+ hD
 
-    thD_m1 = collect(-1+dyt1:dyt1:1-dyt1) .- 0.001
-    thD_m2 = collect(-1+dyt2:dyt2:1-dyt2) .- 0.001
-    thD_m3 = collect(-1+dyt3:dyt3:1-dyt3) .- 0.001
+    thD_m1 = collect(-1+dyt1:dyt1:1-dyt1) .- hD
+    thD_m2 = collect(-1+dyt2:dyt2:1-dyt2) .- hD
+    thD_m3 = collect(-1+dyt3:dyt3:1-dyt3) .- hD
 
     #----- main
      
