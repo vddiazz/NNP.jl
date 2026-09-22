@@ -1057,14 +1057,14 @@ function deriv_y_subtract(dir::String,grid_size::String,y1::Array{Float64},y2::A
     return dU_vals
 end
 
-function deriv_y_proy(dir::String,grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},field::Array{Float64},r_idx::Int,Q_idx::Int, model::String)
+function deriv_y_proy(dir::String,grid_size::String,dy1::Array{Float64},dy2::Array{Float64},dy3::Array{Float64},field::Array{Float64},r_idx::Int,Q_idx::Int, model::String)
 
     #----- params
 
     @assert eltype(field) == Float64
     field :: Array{Float64}
 
-    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+    l1 = length(dy1); l2 = length(dy2); l3 = length(dy3)
 
     d_vals = zeros(Float64, l1,l2,l3,4)
     @assert eltype(field) == Float64
@@ -1074,71 +1074,132 @@ function deriv_y_proy(dir::String,grid_size::String,y1::Array{Float64},y2::Array
 
     if dir == "1"
 
-        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
-            p1 = field[i+1,j,k,c]
-            p2 = field[i+2,j,k,c]
-            m1 = field[i-1,j,k,c]
-            m2 = field[i-2,j,k,c]
-			f0 = field[i,j,k,c]                        
+        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2
+            f0 = field[i,j,k,c]
+	    f1 = field[i-2,j,k,c]
+            f2 = field[i-1,j,k,c]
+            f3 = field[i+1,j,k,c]
+            f4 = field[i+2,j,k,c]                    
 
-			hp1 = y1[i+1] - y1[i]
-			hp2 = y1[i+2] - y1[i]
-			hm1 = y1[i] - y1[i-1]
-			hm2 = y1[i] - y1[i-2]
+	    #==
+	    h1 = y1[i] - y1[i-2]
+	    h2 = y1[i] - y1[i-1]
+	    h3 = y1[i] - y1[i+1]
+	    h4 = y1[i] - y1[i+2]
 
-			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
-			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
-			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
-			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
-			c0 = -(cm2+cm1+cp1+cp2)
+	    h12 = y1[i-2] - y1[i-1]
+	    h13 = y1[i-2] - y1[i+1]
+	    h14 = y1[i-2] - y1[i+2]
 
-            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2
+	    h21 = y1[i-1] - y1[i-2]
+	    h23 = y1[i-1] - y1[i+1] 
+	    h24 = y1[i-1] - y1[i+2] 
+
+	    h31 = y1[i+1] - y1[i-2]
+	    h32 = y1[i+1] - y1[i-1] 
+	    h34 = y1[i+1] - y1[i+2]
+
+	    h41 = y1[i+2] - y1[i-2]
+	    h42 = y1[i+2] - y1[i-1] 
+	    h43 = y1[i+2] - y1[i+1]
+
+	    Lp0 = 1/h1 + 1/h2 + 1/h3 + 1/h4
+	    Lp1 = -(h2*h3*h4)/(h1*h12*h13*h14)
+	    Lp2 = (h1*h3*h4)/(h2*h12*h23*h24)
+	    Lp3 = -(h1*h2*h4)/(h3*h13*h23*h34)
+	    Lp4 = (h1*h2*h3)/(h4*h14*h24*h34)
+	
+            d_vals[i,j,k,c] = Lp0*f0 + Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4
+	    ==#
+
+	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy1[i])
+
         end
 
     elseif dir == "2"
 
-        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
-            p1 = field[i,j+1,k,c]
-            p2 = field[i,j+2,k,c]
-            m1 = field[i,j-1,k,c]
-            m2 = field[i,j-2,k,c]
- 			f0 = field[i,j,k,c]
+        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2
+            f1 = field[i,j-2,k,c]
+            f2 = field[i,j-1,k,c]
+            f3 = field[i,j+1,k,c]
+            f4 = field[i,j+2,k,c]
+	    #f0 = field[i,j,k,c]
 
-			hp1 = y2[j+1] - y2[j]
-			hp2 = y2[j+2] - y2[j]
-			hm1 = y2[j] - y2[j-1]
-			hm2 = y2[j] - y2[j-2]
+	    #==
+	    h1 = y2[i] - y2[i-2]
+	    h2 = y2[i] - y2[i-1]
+	    h3 = y2[i] - y2[i+1]
+	    h4 = y2[i] - y2[i+2]
 
-			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
-			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
-			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
-			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
-			c0 = -(cm2+cm1+cp1+cp2)
+	    h12 = y2[i-2] - y2[i-1]
+	    h13 = y2[i-2] - y2[i+1]
+	    h14 = y2[i-2] - y2[i+2]
 
-            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2                       
-        end
+	    h21 = y2[i-1] - y2[i-2]
+	    h23 = y2[i-1] - y2[i+1] 
+	    h24 = y2[i-1] - y2[i+2] 
+
+	    h31 = y2[i+1] - y2[i-2]
+	    h32 = y2[i+1] - y2[i-1] 
+	    h34 = y2[i+1] - y2[i+2]
+
+	    h41 = y2[i+2] - y2[i-2]
+	    h42 = y2[i+2] - y2[i-1] 
+	    h43 = y2[i+2] - y2[i+1]
+
+	    Lp1 = (h3*h4 + h2*h4 + h2*h3)/(h12*h13*h14)
+	    Lp2 = (h3*h4 + h1*h4 + h1*h3)/(h21*h23*h24)
+	    Lp3 = (h2*h4 + h1*h4 + h1*h2)/(h31*h32*h34)
+	    Lp4 = (h2*h3 + h1*h3 + h1*h2)/(h41*h42*h43)
+
+            d_vals[i,j,k,c] = Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4                      
+	    ==#
+
+	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy2[j])
+
+	end
     
     elseif dir == "3"
         
-        @tturbo for k in 3:l3-2, j in 3:l2-2, i in 3:l1-2, c in 1:4
-            p1 = field[i,j,k+1,c]
-            p2 = field[i,j,k+2,c]
-            m1 = field[i,j,k-1,c]
-            m2 = field[i,j,k-2,c]
- 			f0 = field[i,j,k,c]
+        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2 
+	    f0 = field[i,j,k,c]
+            f1 = field[i,j,k-2,c]
+            f2 = field[i,j,k-1,c]
+            f3 = field[i,j,k+1,c]
+            f4 = field[i,j,k+2,c]
 
-			hp1 = y3[k+1] - y3[k]
-			hp2 = y3[k+2] - y3[k]
-			hm1 = y3[k] - y3[k-1]
-			hm2 = y3[k] - y3[k-2]
+	    #==
+	    h1 = y3[i] - y3[i-2]
+	    h2 = y3[i] - y3[i-1]
+	    h3 = y3[i] - y3[i+1]
+	    h4 = y3[i] - y3[i+2]
 
-			cm2 = -hm1*hp1*hp2/(hm2*(hm1-hm2)*(hm2+hp1)*(hm2+hp2))
-			cm1 = hm2*hp1*hp2/(hm1*(hm1-hm2)*(hm1+hp1)*(hm1+hp2))
-			cp1 = hm2*hm1*hp2/(hp1*(hm2+hp1)*(hm1+hp1)*(hp2-hp1))
-			cp2 = -hm2*hm1*hp1/(hp2*(hm2+hp2)*(hm1+hp2)*(hp2-hp1))
-			c0 = -(cm2+cm1+cp1+cp2)
+	    h12 = y3[i-2] - y3[i-1]
+	    h13 = y3[i-2] - y3[i+1]
+	    h14 = y3[i-2] - y3[i+2]
 
-            d_vals[i,j,k,c] = cm2*m2 + cm1*m1 + c0*f0 + cp1*p1 + cp2*p2
+	    h21 = y3[i-1] - y3[i-2]
+	    h23 = y3[i-1] - y3[i+1] 
+	    h24 = y3[i-1] - y3[i+2] 
+
+	    h31 = y3[i+1] - y3[i-2]
+	    h32 = y3[i+1] - y3[i-1] 
+	    h34 = y3[i+1] - y3[i+2]
+
+	    h41 = y3[i+2] - y3[i-2]
+	    h42 = y3[i+2] - y3[i-1] 
+	    h43 = y3[i+2] - y3[i+1]
+
+	    Lp1 = (h3*h4 + h2*h4 + h2*h3)/(h12*h13*h14)
+	    Lp2 = (h3*h4 + h1*h4 + h1*h3)/(h21*h23*h24)
+	    Lp3 = (h2*h4 + h1*h4 + h1*h2)/(h31*h32*h34)
+	    Lp4 = (h2*h3 + h1*h3 + h1*h2)/(h41*h42*h43)
+
+            d_vals[i,j,k,c] = Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4
+	    ==#
+
+	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy3[k])
+
         end
     end
 

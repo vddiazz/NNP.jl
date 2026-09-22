@@ -208,7 +208,7 @@ function make_grid_proy(p1::Int64,p2::Int64,p3::Int64,r_vals::Array{Float64}, ou
                 y3[r_idx,i] = sec1
             elseif (0.0 < yt3[i]) && (yt3[i] < 1/2.)
                 y3[r_idx,i] = sec2
-            elseif (-1/2. < yt3[i]) && (yt3[i] < 0.0)
+            elseif (-1/2. < yt3[i]) && (yt3[i] <= 0.0)
                 y3[r_idx,i] = -sec2
             elseif yt3[i] <= -1/2.
                 y3[r_idx,i] = -sec1
