@@ -1057,6 +1057,15 @@ function deriv_y_subtract(dir::String,grid_size::String,y1::Array{Float64},y2::A
     return dU_vals
 end
 
+function pad2(field, dim)
+    n = size(field, dim)
+    vshape = ntuple(d -> d == dim ? 1 : size(field, d), 4)
+    vac = zeros(Float64, vshape); selectdim(vac, 4, 1) .= 1.0
+    first = selectdim(field, dim, 1:1)
+    last  = selectdim(field, dim, n:n)
+    return cat(first, vac, field, vac, last; dims=dim)   # node i of φ is at index i+2 of the result
+end
+
 function deriv_y_proy(dir::String,grid_size::String,dy1::Array{Float64},dy2::Array{Float64},dy3::Array{Float64},field::Array{Float64},r_idx::Int,Q_idx::Int, model::String)
 
     #----- params
@@ -1074,131 +1083,43 @@ function deriv_y_proy(dir::String,grid_size::String,dy1::Array{Float64},dy2::Arr
 
     if dir == "1"
 
-        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2
-            f0 = field[i,j,k,c]
-	    f1 = field[i-2,j,k,c]
-            f2 = field[i-1,j,k,c]
-            f3 = field[i+1,j,k,c]
-            f4 = field[i+2,j,k,c]                    
+		Fp = pad2(field,1)
 
-	    #==
-	    h1 = y1[i] - y1[i-2]
-	    h2 = y1[i] - y1[i-1]
-	    h3 = y1[i] - y1[i+1]
-	    h4 = y1[i] - y1[i+2]
+        @tturbo for c in 1:4, k in 1:l3, j in 1:l2, i in 1:l1
+	    	f1 = Fp[i,j,k,c]
+            f2 = Fp[i+1,j,k,c]
+            f3 = Fp[i+3,j,k,c]
+            f4 = Fp[i+4,j,k,c]                    
 
-	    h12 = y1[i-2] - y1[i-1]
-	    h13 = y1[i-2] - y1[i+1]
-	    h14 = y1[i-2] - y1[i+2]
-
-	    h21 = y1[i-1] - y1[i-2]
-	    h23 = y1[i-1] - y1[i+1] 
-	    h24 = y1[i-1] - y1[i+2] 
-
-	    h31 = y1[i+1] - y1[i-2]
-	    h32 = y1[i+1] - y1[i-1] 
-	    h34 = y1[i+1] - y1[i+2]
-
-	    h41 = y1[i+2] - y1[i-2]
-	    h42 = y1[i+2] - y1[i-1] 
-	    h43 = y1[i+2] - y1[i+1]
-
-	    Lp0 = 1/h1 + 1/h2 + 1/h3 + 1/h4
-	    Lp1 = -(h2*h3*h4)/(h1*h12*h13*h14)
-	    Lp2 = (h1*h3*h4)/(h2*h12*h23*h24)
-	    Lp3 = -(h1*h2*h4)/(h3*h13*h23*h34)
-	    Lp4 = (h1*h2*h3)/(h4*h14*h24*h34)
-	
-            d_vals[i,j,k,c] = Lp0*f0 + Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4
-	    ==#
-
-	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy1[i])
+	    	d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy1[i])
 
         end
 
     elseif dir == "2"
 
-        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2
-            f1 = field[i,j-2,k,c]
-            f2 = field[i,j-1,k,c]
-            f3 = field[i,j+1,k,c]
-            f4 = field[i,j+2,k,c]
-	    #f0 = field[i,j,k,c]
+		Fp = pad2(field,2)
 
-	    #==
-	    h1 = y2[i] - y2[i-2]
-	    h2 = y2[i] - y2[i-1]
-	    h3 = y2[i] - y2[i+1]
-	    h4 = y2[i] - y2[i+2]
+        @tturbo for c in 1:4, k in 1:l3, j in 1:l2, i in 1:l1
+        	f1 = Fp[i,j,k,c]
+            f2 = Fp[i,j+1,k,c]
+            f3 = Fp[i,j+3,k,c]
+            f4 = Fp[i,j+4,k,c]                    
 
-	    h12 = y2[i-2] - y2[i-1]
-	    h13 = y2[i-2] - y2[i+1]
-	    h14 = y2[i-2] - y2[i+2]
+ 			d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy2[j])
 
-	    h21 = y2[i-1] - y2[i-2]
-	    h23 = y2[i-1] - y2[i+1] 
-	    h24 = y2[i-1] - y2[i+2] 
-
-	    h31 = y2[i+1] - y2[i-2]
-	    h32 = y2[i+1] - y2[i-1] 
-	    h34 = y2[i+1] - y2[i+2]
-
-	    h41 = y2[i+2] - y2[i-2]
-	    h42 = y2[i+2] - y2[i-1] 
-	    h43 = y2[i+2] - y2[i+1]
-
-	    Lp1 = (h3*h4 + h2*h4 + h2*h3)/(h12*h13*h14)
-	    Lp2 = (h3*h4 + h1*h4 + h1*h3)/(h21*h23*h24)
-	    Lp3 = (h2*h4 + h1*h4 + h1*h2)/(h31*h32*h34)
-	    Lp4 = (h2*h3 + h1*h3 + h1*h2)/(h41*h42*h43)
-
-            d_vals[i,j,k,c] = Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4                      
-	    ==#
-
-	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy2[j])
-
-	end
+		end
     
     elseif dir == "3"
-        
-        @tturbo for c in 1:4, k in 3:l3-2, j in 3:l2-2, i in 3:l1-2 
-	    f0 = field[i,j,k,c]
-            f1 = field[i,j,k-2,c]
-            f2 = field[i,j,k-1,c]
-            f3 = field[i,j,k+1,c]
-            f4 = field[i,j,k+2,c]
+ 
+		Fp = pad2(field,3)
+       
+        @tturbo for c in 1:4, k in 1:l3, j in 1:l2, i in 1:l1
+            f1 = Fp[i,j,k,c]
+            f2 = Fp[i,j,k+1,c]
+            f3 = Fp[i,j,k+3,c]
+            f4 = Fp[i,j,k+4,c]
 
-	    #==
-	    h1 = y3[i] - y3[i-2]
-	    h2 = y3[i] - y3[i-1]
-	    h3 = y3[i] - y3[i+1]
-	    h4 = y3[i] - y3[i+2]
-
-	    h12 = y3[i-2] - y3[i-1]
-	    h13 = y3[i-2] - y3[i+1]
-	    h14 = y3[i-2] - y3[i+2]
-
-	    h21 = y3[i-1] - y3[i-2]
-	    h23 = y3[i-1] - y3[i+1] 
-	    h24 = y3[i-1] - y3[i+2] 
-
-	    h31 = y3[i+1] - y3[i-2]
-	    h32 = y3[i+1] - y3[i-1] 
-	    h34 = y3[i+1] - y3[i+2]
-
-	    h41 = y3[i+2] - y3[i-2]
-	    h42 = y3[i+2] - y3[i-1] 
-	    h43 = y3[i+2] - y3[i+1]
-
-	    Lp1 = (h3*h4 + h2*h4 + h2*h3)/(h12*h13*h14)
-	    Lp2 = (h3*h4 + h1*h4 + h1*h3)/(h21*h23*h24)
-	    Lp3 = (h2*h4 + h1*h4 + h1*h2)/(h31*h32*h34)
-	    Lp4 = (h2*h3 + h1*h3 + h1*h2)/(h41*h42*h43)
-
-            d_vals[i,j,k,c] = Lp1*f1 + Lp2*f2 + Lp3*f3 + Lp4*f4
-	    ==#
-
-	    d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy3[k])
+	    	d_vals[i,j,k,c] = (f1 - 8*f2 + 8*f3 - f4)/(12*dy3[k])
 
         end
     end
@@ -1716,6 +1637,118 @@ function deriv_Q2_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Arra
         dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
     end
 
+    return dU_vals
+end
+
+function deriv_Q_hdg(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},f_plus::Array{Float64}, r_val::Float64, Q2::Matrix{ComplexF64}, model::String)
+
+    #----- prepare params
+
+    @assert eltype(y1) == Float64 && eltype(y2) == Float64 && eltype(y3) == Float64
+    @assert eltype(f_plus) == Float64
+
+    sigma1 = [0im 1.; 1. 0im]
+    sigma2 = [0. -1im; 1im 0.]
+    sigma3 = [1. 0im; 0im -1.]
+	sigmas = [sigma1,sigma2,sigma3]
+
+    #----- prelocate arrays
+
+    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+
+    y = zeros(Float64, 3)
+    xm = zeros(Float64, 3)
+
+    dirs2_1 = (Q2*sigma1)*inv(Q2); dirs2_2 = (Q2*sigma2)*inv(Q2); dirs2_3 = (Q2*sigma3)*inv(Q2)
+	
+	ddirs2_1 = (Q2*(sigma1*sigmas[dir] - sigmas[dir]*sigma1))*inv(Q2); ddirs2_2 = (Q2*(sigma2*sigmas[dir] - sigmas[dir]*sigma2))*inv(Q2); ddirs2_3 = (Q2*(sigma3*sigmas[dir] - sigmas[dir]*sigma3))*inv(Q2)
+
+    #----- evaluate field values
+    
+    dU_vals = zeros(Float64, l1,l2,l3,4)
+
+    @showprogress 1 "Computing..." for k in 1:l3
+        @inbounds @fastmath for j in 1:l2, i in 1:l1
+               
+            #----- params        
+
+            y[1] = y1[i]; y[2] = y2[j]; y[3] = y3[k]
+            xm[3] = r_val/2.
+            pos_p_1 = y[1]+xm[1]; pos_p_2 = y[2]+xm[2]; pos_p_3 = y[3]+xm[3]
+
+            ar_p = sqrt(pos_p_1^2 + pos_p_2^2 + pos_p_3^2)
+
+            #----- f(r) values
+
+            f_p = f_plus[i,j,k]
+
+            sin_f_p, cos_f_p = sincos(f_p)
+
+            #----- U2
+
+            Z2_11 = pos_p_1*(dirs2_1[1,1]) + pos_p_2*(dirs2_2[1,1]) + pos_p_3*(dirs2_3[1,1])
+            Z2_12 = pos_p_1*(dirs2_1[1,2]) + pos_p_2*(dirs2_2[1,2]) + pos_p_3*(dirs2_3[1,2])
+            Z2_21 = pos_p_1*(dirs2_1[2,1]) + pos_p_2*(dirs2_2[2,1]) + pos_p_3*(dirs2_3[2,1])
+            Z2_22 = pos_p_1*(dirs2_1[2,2]) + pos_p_2*(dirs2_2[2,2]) + pos_p_3*(dirs2_3[2,2])
+           
+            # tr
+            tr_12 = sigma1[1,1]*Z2_11+sigma1[1,2]*Z2_21 + sigma1[2,1]*Z2_12+sigma1[2,2]*Z2_22
+            tr_22 = sigma2[1,1]*Z2_11+sigma2[1,2]*Z2_21 + sigma2[2,1]*Z2_12+sigma2[2,2]*Z2_22
+            tr_32 = sigma3[1,1]*Z2_11+sigma3[1,2]*Z2_21 + sigma3[2,1]*Z2_12+sigma3[2,2]*Z2_22
+
+            dirs2_param_1 = 0.5*(Z2_11+Z2_22); 
+            dirs2_param_2 = 0.5*tr_12; 
+            dirs2_param_3 = 0.5*tr_22; 
+            dirs2_param_4 = 0.5*tr_32
+            
+            phi2_1 = cos_f_p + dirs2_param_1; 
+            phi2_2 = sin_f_p*(1/ar_p)*dirs2_param_2; 
+            phi2_3 = sin_f_p*(1/ar_p)*dirs2_param_3; 
+            phi2_4 = sin_f_p*(1/ar_p)*dirs2_param_4
+
+           	#----- deriv of phi2
+
+            Zd2_11 = pos_p_1*(ddirs2_1[1,1]) + pos_p_2*(ddirs2_2[1,1]) + pos_p_3*(ddirs2_3[1,1])
+            Zd2_12 = pos_p_1*(ddirs2_1[1,2]) + pos_p_2*(ddirs2_2[1,2]) + pos_p_3*(ddirs2_3[1,2])
+            Zd2_21 = pos_p_1*(ddirs2_1[2,1]) + pos_p_2*(ddirs2_2[2,1]) + pos_p_3*(ddirs2_3[2,1])
+            Zd2_22 = pos_p_1*(ddirs2_1[2,2]) + pos_p_2*(ddirs2_2[2,2]) + pos_p_3*(ddirs2_3[2,2])
+
+            tr_d12 = sigma1[1,1]*Zd2_11+sigma1[1,2]*Zd2_21 + sigma1[2,1]*Zd2_12+sigma1[2,2]*Zd2_22
+            tr_d22 = sigma2[1,1]*Zd2_11+sigma2[1,2]*Zd2_21 + sigma2[2,1]*Zd2_12+sigma2[2,2]*Zd2_22
+            tr_d32 = sigma3[1,1]*Zd2_11+sigma3[1,2]*Zd2_21 + sigma3[2,1]*Zd2_12+sigma3[2,2]*Zd2_22
+
+            ddirs2_param_2 = 0.25*1im*tr_d12; 
+            ddirs2_param_3 = 0.25*1im*tr_d22; 
+            ddirs2_param_4 = 0.25*1im*tr_d32
+
+			dphi2_1 = 0
+			dphi2_2 = sin_f_p*(1/ar_p)*ddirs2_param_2;
+			dphi2_3 = sin_f_p*(1/ar_p)*ddirs2_param_3;
+			dphi2_4 = sin_f_p*(1/ar_p)*ddirs2_param_4;
+
+            #----- return
+
+            dU_vals[i,j,k,1] = real(dphi2_1);
+			dU_vals[i,j,k,2] = real(dphi2_2);
+			dU_vals[i,j,k,3] = real(dphi2_3);
+			dU_vals[i,j,k,4] = real(dphi2_4);
+        
+        end
+    end
+
+	#----- interp missing NaN
+	#===
+    if grid_size == "proy_80x80x160"
+        dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
+        dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
+    elseif grid_size == "proy_90x90x180"
+        dU_vals[45,45,45,:] .= dU_vals[45,45,44,:]
+        dU_vals[45,45,135,:] .= dU_vals[45,45,134,:]
+    elseif grid_size == "proy_100x100x200"
+        dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
+        dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
+    end
+	==#
     return dU_vals
 end
 

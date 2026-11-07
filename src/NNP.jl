@@ -20,10 +20,14 @@ export make_grid_proy
 export make_hD_proy
 
 include("interp.jl")
+export rhs!
+export model_setup
+export f_fit
 export interp_2sky_no
 export interp_2sky_dx
 export interp_2sky_dy
 export interp_2sky_no_proy
+export interp_1sky_no_proy
 export interp_2sky_dx_proy
 export interp_2sky_dy_proy
 export interp_df_2sky_no_proy
@@ -36,6 +40,7 @@ export field_value
 export field_grid
 export field_grid_single
 export FAST_field_grid
+export FAST_field_grid_hdg
 export make_field
 export FAST_make_field
 
@@ -49,6 +54,7 @@ export deriv_Q2
 export deriv_x_exact
 export deriv_Q1_exact
 export deriv_Q2_exact
+export deriv_Q_hdg
 
 #-----
 

@@ -10,13 +10,13 @@ using Interpolations
 
 ###
 
-function g_AB(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size::String,hD::Float64,model::String,metric_terms::Vector{<:Function},out::String,output_format::String)::Float64
+function g_AB(path::String,A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size::String,hD::Float64,model::String,metric_terms::Vector{<:Function},out::String,output_format::String)::Float64
 
     #----- prepare fields
 
-    d1 = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d2 = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d3 = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d1 = open("$(path)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d2 = open("$(path)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d3 = open("$(path)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     l1 = length(d1[:,1,1,1]); l2 = length(d1[1,:,1,1]); l3 = length(d1[1,1,:,1])
 
@@ -28,8 +28,8 @@ function g_AB(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size:
     println("Metric (A=$(A), B=$(B)) --- r_idx=$(r_idx), Q_idx=$(Q_idx)")
     println()
  
-    DA = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    DB = open("/home/velni/phd/w/nnp/data/deriv/$(model)/$(grid_size)/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DA = open("$(path)/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DB = open("$(path)/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     g = 0.
 
@@ -179,7 +179,7 @@ function g_AB_extra(A::Int64,B::Int64,factor::Float64,c6::Float64,r_idx::Int64,Q
     return g*hD^3
 end
 
-function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size::String,model::String,metric_terms::Vector{<:Function},out::String,output_format::String)::Float64
+function g_AB_proy(path::String,A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_size::String,model::String,metric_terms::Vector{<:Function},out::String,output_format::String)::Float64
 
     #----- prepare fields
 	#==
@@ -193,14 +193,14 @@ function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_
     d3 = open("/lustre/HQCD/victor.diaz/nnp/data/deriv/$(model)/$(grid_size)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 	==#
 
-    dy1 = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy1.jls", "r") do io; deserialize(io); end
-    dy2 = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy2.jls", "r") do io; deserialize(io); end
-    dy3_all = open("/home/vddiazz/Desktop/temp_nnp/$(grid_size)/dy3.jls", "r") do io; deserialize(io); end
+    dy1 = open("$(path)/dy1.jls", "r") do io; deserialize(io); end
+    dy2 = open("$(path)/dy2.jls", "r") do io; deserialize(io); end
+    dy3_all = open("$(path)/dy3.jls", "r") do io; deserialize(io); end
     dy3 = dy3_all[r_idx,:]
 
-    d1 = open("/home/vddiazz/Desktop/temp_nnp/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d2 = open("/home/vddiazz/Desktop/temp_nnp/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    d3 = open("/home/vddiazz/Desktop/temp_nnp/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d1 = open("$(path)/d1U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d2 = open("$(path)/d2U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    d3 = open("$(path)/d3U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     l1 = length(d1[:,1,1,1]); l2 = length(d1[1,:,1,1]); l3 = length(d1[1,1,:,1])
 
@@ -212,8 +212,8 @@ function g_AB_proy(A::Int64,B::Int64,c6::Float64,r_idx::Int64,Q_idx::Int64,grid_
     println("Metric (A=$(A), B=$(B)) --- r_idx=$(r_idx), Q_idx=$(Q_idx)")
     println()
  
-    DA = open("/home/vddiazz/Desktop/temp_nnp/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
-    DB = open("/home/vddiazz/Desktop/temp_nnp/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DA = open("$(path)/D$(A)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
+    DB = open("$(path)/D$(B)U_r=$(r_idx)_Q=$(Q_idx).jls", "r") do io; deserialize(io); end
 
     g = 0.
 

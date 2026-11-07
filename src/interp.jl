@@ -6,11 +6,105 @@ using NPZ
 using LinearAlgebra
 using SpecialFunctions
 using ProgressMeter
-
-#----- interp
-
 using DelimitedFiles
 using Interpolations
+using OrdinaryDiffEq
+
+#----- asymptotic f
+
+using OrdinaryDiffEq, DelimitedFiles
+
+# p = (m=..., c6=...); std is m=0, c6=0
+function rhs!(du, u, p, r)
+    f, fp = u
+    s, c = sin(f), cos(f)
+    A = r^2 + 2s^2 + p.c6*s^4/r^2
+    B = 2r*fp + sin(2f)*(fp^2 - 1 - s^2/r^2) - p.m^2*r^2*s +
+        p.c6*(2*s^3*c*fp^2/r^2 - 2*s^4*fp/r^3)
+    du[1] = fp
+    du[2] = -B/A
+end
+
+function model_setup(model; m=0.0, c6=0.0)
+    if model == "std"
+		m = 0.0; c6 = 0.0
+    elseif model == "mss" 
+		c6 = 0.0
+    elseif model == "sxt"
+		m = 0.0
+    else 
+		error("unknown model $model") 
+	end
+    
+	p = (m=m, c6=c6)
+    if m == 0
+        r0   = 200.0
+        u0   = C -> [C/r0^2, -2C/r0^3]
+        tail = (C,x) -> C/x^2
+    else
+        r0   = 18/m
+        u0   = C -> [C*exp(-m*r0)*(m/r0 + 1/r0^2),
+                    -C*exp(-m*r0)*(m*(m/r0 + 1/r0^2) + m/r0^2 + 2/r0^3)]
+        tail = (C,x) -> C*exp(-m*x)*(m/x + 1/x^2)
+    end
+    return (p=p, r0=r0, u0=u0, tail=tail)
+end
+
+function f_fit(model::String; m=0.0, c6=0.0, bracket=nothing, outdir="/home/vddiazz/Desktop")
+    S = model_setup(model; m=m, c6=c6)
+    r0 = S.r0
+    flag = Ref(0)
+    cb_over = ContinuousCallback((u,t,i)->u[1]-pi, i->(flag[]=+1; terminate!(i)))
+    cb_turn = ContinuousCallback((u,t,i)->u[2],    i->(flag[]=-1; terminate!(i)))
+    cbs = CallbackSet(cb_over, cb_turn)
+
+    function shoot(C; dense=false)
+        flag[] = 0
+        prob = ODEProblem(rhs!, S.u0(C), (r0, 1e-6), S.p)
+        sol = solve(prob, Vern9(); reltol=1e-13, abstol=1e-16, callback=cbs, dense=dense)
+        return flag[], sol
+    end
+
+    # automatic bracket: scan C until the flag changes from -1 to +1
+    function find_bracket()
+        Cs = 10 .^ range(-1, 2, length=80)
+        fl = [shoot(C)[1] for C in Cs]
+        println("flags along the scan: ", fl)
+        i = findfirst(k -> fl[k] == -1 && fl[k+1] == +1, 1:length(Cs)-1)
+        i === nothing && error("no bracket found; widen the scan or check the flags")
+        return Cs[i], Cs[i+1]
+    end
+
+    function bisect_C(lo, hi)
+        flo,_ = shoot(lo); fhi,_ = shoot(hi)
+        println("flag(lo)=$flo, flag(hi)=$fhi (expected -1, +1)")
+        @assert flo == -1 && fhi == +1 "adjust the bracket"
+        for _ in 1:200
+            mid = (lo+hi)/2
+            fm,_ = shoot(mid)
+            fm == +1 ? (hi = mid) : (lo = mid)
+            hi-lo < 1e-14 && break
+        end
+        return (lo+hi)/2
+    end
+
+    lo, hi = bracket === nothing ? find_bracket() : bracket
+    C = bisect_C(lo, hi)
+    _, sol = shoot(C; dense=true)
+    rs = sol.t[end]
+    println("C = $C,  r_stop = $rs")
+
+    grid = collect(0.001:0.01:r0); grid = grid[grid .>= rs]
+    ftab = [sol(r)[1] for r in grid]
+    writedlm("$outdir/profile_$(model).dat", hcat(grid, ftab))
+    open("$outdir/profile_$(model)_params.txt","w") do io
+        println(io, "model = $model  m = $(S.p.m)  c6 = $(S.p.c6)")
+        println(io, "C = $C  r0 = $r0  rs = $rs  f_s = $(sol(rs)[1])  fp_s = $(sol(rs)[2])")
+    end
+    return C, S, grid, ftab
+end
+
+#----- interp
 
 function interp_2sky_no(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
 
@@ -291,24 +385,41 @@ end
 
 #---------- proy
 
-function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
+function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String, out::String,output_format::String; m=0, c6=0)
 
-    r0 = data[:,1]; f0 = data[:,2]
+	C, S, rgrid, ftab = f_fit(model; m=m, c6=c6, outdir=out)
+	
+	r0 = rgrid
+	f0 = ftab
+	mtail = S.p.m
 
     y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
     l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
 
     #----- main loop
-    
-    r0_itp = first(r0):0.01:last(r0)
+ 
+    r0_axis    = range(first(r0), last(r0), length=length(r0))
+    itp_scaled = scale(interpolate(f0, BSpline(Cubic(Line(OnGrid())))), r0_axis)
 
-    itp_inner = interpolate(f0, BSpline(Linear()))
-    itp_scaled = scale(itp_inner, r0_itp)
-    function itp(x)
-        if x < first(r0)
-            return 3.14159
-        elseif x > last(r0)
-            return 0
+    rho_s   = first(r0)
+    f_s   = f0[1]
+    fp_s  = (f0[2] - f0[1]) / (r0[2] - r0[1])     # slope at the inner end (≈ -π/…, negative)
+    rho_max = last(r0)
+    
+	if mtail == 0
+		g(x) = 1/x^2
+	else
+		g(x) = exp(-m*x) * (m/x + 1/x^2)
+	end
+
+	Ctail = f0[end]/g(rho_max)
+
+
+    function itp(x::Float64)
+        if x < rho_s
+            return min(Float64(pi), f_s + fp_s*(x - rho_s))   # linear continuation toward the origin
+        elseif x > rho_max
+            return Ctail*g(x)                            # massless tail, never 0
         else
             return itp_scaled(x)
         end
@@ -326,9 +437,9 @@ function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out
 
         r = r_vals[r_idx]
         
-        @inbounds @fastmath for k in 1:l3, j in 1:l2, i in 1:l1
-            temp_f_plus = itp(norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2]) ) 
-            temp_f_minus = itp(norm([y1[i],y2[j],y3[r_idx,k]] .- [0.,0.,r/2]) )
+        @inbounds for k in 1:l3, j in 1:l2, i in 1:l1
+            temp_f_plus = itp(sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k] + r/2)^2) ) 
+            temp_f_minus = itp(sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k] - r/2)^2) )
             
             matrix_f_plus[i,j,k] = temp_f_plus
             matrix_f_minus[i,j,k] = temp_f_minus
@@ -357,6 +468,74 @@ function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out
     println()
     println("#--------------------------------------------------#")
 end
+
+#####
+
+function interp_1sky_no_proy(rtc,r_vals::Array{Float64}, model::String,data, out::String,output_format::String)
+
+    r0 = data[:,1]; f0 = data[:,2]
+
+    y1 = rtc[1]; y2 = rtc[2]; y3 = rtc[3]
+    l1 = length(y1); l2 = length(y2); l3 = length(y3[1,:])
+
+    #----- main loop
+
+    r0_axis    = range(first(r0), last(r0), length=length(r0))
+    itp_scaled = scale(interpolate(f0, BSpline(Cubic(Line(OnGrid())))), r0_axis)
+
+    rho_s   = first(r0)
+    f_s   = f0[1]
+    fp_s  = (f0[2] - f0[1]) / (r0[2] - r0[1])     # slope at the inner end (≈ -π/…, negative)
+    rho_max = last(r0)
+    Cinf  = f0[end] * rho_max^2                     # fixed by the table, so the join is continuous
+
+    function itp(x::Float64)
+        if x < rho_s
+            return min(Float64(pi), f_s + fp_s*(x - rho_s))   # linear continuation toward the origin
+        elseif x > rho_max
+            return Cinf / x^2                              # massless tail, never 0
+        else
+            return itp_scaled(x)
+        end
+    end
+
+    println()
+    println("#--------------------------------------------------#")
+    println()
+    println("Radial function interpolation")
+    println()
+
+    @showprogress 1 "Computing..." for r_idx in 1:length(r_vals)
+        
+        matrix_f = zeros(Float64, l1,l2,l3)
+
+        r = r_vals[r_idx]
+        
+        @inbounds @fastmath for k in 1:l3, j in 1:l2, i in 1:l1
+            rho = norm([y1[i],y2[j],y3[r_idx,k]] .+ [0.,0.,r/2])
+            matrix_f[i,j,k] = itp(rho)
+        end 
+
+        #----- data saving
+
+        if output_format == "jld2"
+        	#
+		elseif output_format == "npy"
+        	#
+		elseif output_format == "jls"
+            open(out*"/f_$(model)_hdg_r=$(r_idx).jls", "w") do io
+                serialize(io, matrix_f)
+            end
+        end
+
+    end
+        
+    println()
+    println("data saved at "*out )
+    println()
+    println("#--------------------------------------------------#")
+end
+
 
 #####
 

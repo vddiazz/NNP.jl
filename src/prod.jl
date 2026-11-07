@@ -172,6 +172,84 @@ end
 
 ###
 
+function FAST_field_grid_hdg(grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},f_plus::Array{Float64}, r_val::Float64,Q::Matrix{ComplexF64}, model::String)
+
+    #----- prepare params
+
+    @assert eltype(y1) == Float64 && eltype(y2) == Float64 && eltype(y3) == Float64
+    @assert eltype(f_plus) == Float64
+
+    sigma1 = [0im 1.; 1. 0im]
+    sigma2 = [0. -1im; 1im 0.]
+    sigma3 = [1. 0im; 0im -1.]
+
+    #----- prelocate arrays
+
+    l1 = length(y1); l2 = length(y2); l3 = length(y3)
+
+    y = zeros(Float64, 3)
+    xm = zeros(Float64, 3)
+
+    dirs_1 = (Q*sigma1)*inv(Q); dirs_2 = (Q*sigma2)*inv(Q); dirs_3 = (Q*sigma3)*inv(Q)
+
+    #----- evaluate field values
+    
+    U_vals = zeros(Float64, l1,l2,l3,4)
+
+    #println()
+    #println("2-skyrmion field -- Symmetrized product approximation")
+    #println()
+
+    @showprogress 1 "Computing..." for k in 1:l3
+        @inbounds @fastmath for j in 1:l2, i in 1:l1
+               
+            #----- params        
+
+            y[1] = y1[i]; y[2] = y2[j]; y[3] = y3[k]
+            xm[3] = r_val/2.
+            pos_p_1 = y[1]+xm[1]; pos_p_2 = y[2]+xm[2]; pos_p_3 = y[3]+xm[3]
+
+            ar_p = sqrt(pos_p_1^2 + pos_p_2^2 + pos_p_3^2)
+
+            #----- f(r) values
+
+            f_p = f_plus[i,j,k]
+
+            sin_f_p, cos_f_p = sincos(f_p)
+
+            #----- U
+
+            Z2_11 = pos_p_1*(dirs_1[1,1]) + pos_p_2*(dirs_2[1,1]) + pos_p_3*(dirs_3[1,1])
+            Z2_12 = pos_p_1*(dirs_1[1,2]) + pos_p_2*(dirs_2[1,2]) + pos_p_3*(dirs_3[1,2])
+            Z2_21 = pos_p_1*(dirs_1[2,1]) + pos_p_2*(dirs_2[2,1]) + pos_p_3*(dirs_3[2,1])
+            Z2_22 = pos_p_1*(dirs_1[2,2]) + pos_p_2*(dirs_2[2,2]) + pos_p_3*(dirs_3[2,2])
+           
+            # tr
+            tr_12 = sigma1[1,1]*Z2_11+sigma1[1,2]*Z2_21 + sigma1[2,1]*Z2_12+sigma1[2,2]*Z2_22
+            tr_22 = sigma2[1,1]*Z2_11+sigma2[1,2]*Z2_21 + sigma2[2,1]*Z2_12+sigma2[2,2]*Z2_22
+            tr_32 = sigma3[1,1]*Z2_11+sigma3[1,2]*Z2_21 + sigma3[2,1]*Z2_12+sigma3[2,2]*Z2_22
+
+            dirs_param_1 = 0.5*(Z2_11+Z2_22); 
+            dirs_param_2 = 0.5*tr_12; 
+            dirs_param_3 = 0.5*tr_22; 
+            dirs_param_4 = 0.5*tr_32
+            
+            phi_1 = cos_f_p + dirs_param_1; 
+            phi_2 = sin_f_p*(1/ar_p)*dirs_param_2; 
+            phi_3 = sin_f_p*(1/ar_p)*dirs_param_3; 
+            phi_4 = sin_f_p*(1/ar_p)*dirs_param_4
+
+            #----- return
+
+            U_vals[i,j,k,1] = real(phi_1); U_vals[i,j,k,2] = real(phi_2); U_vals[i,j,k,3] = real(phi_3); U_vals[i,j,k,4] = real(phi_4)
+        
+        end
+    end
+
+    return U_vals
+end
+
+
 function FAST_field_grid(grid_size::String,y1::Array{Float64},y2::Array{Float64},y3::Array{Float64},f_minus::Array{Float64},f_plus::Array{Float64}, r_val::Float64,Q1::Matrix{ComplexF64}, Q2::Matrix{ComplexF64}, model::String)
 
     #----- prepare params
@@ -219,10 +297,8 @@ function FAST_field_grid(grid_size::String,y1::Array{Float64},y2::Array{Float64}
             f_p = f_plus[i,j,k]
             f_m = f_minus[i,j,k]
 
-            cos_f_p = 1 - 0.5*f_p^2 + (1/24.)*f_p^4 - (1/720.)*f_p^6 + (1/40320.)*f_p^8 - (1/3638800.)*f_p^10
-            cos_f_m = 1 - 0.5*f_m^2 + (1/24.)*f_m^4 - (1/720.)*f_m^6 + (1/40320.)*f_m^8 - (1/3638800.)*f_m^10
-            sin_f_p = f_p - (1/6.)*f_p^3 + (1/120.)*f_p^5 - (1/5040.)*f_p^7 + (1/362880.)*f_p^9 - (1/39916800.)*f_p^11
-            sin_f_m = f_m - (1/6.)*f_m^3 + (1/120.)*f_m^5 - (1/5040.)*f_m^7 + (1/362880.)*f_m^9 - (1/39916800.)*f_m^11
+            sin_f_p, cos_f_p = sincos(f_p)
+            sin_f_m, cos_f_m = sincos(f_m)
 
             #----- U1
 
