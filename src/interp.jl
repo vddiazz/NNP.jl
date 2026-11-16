@@ -400,20 +400,18 @@ function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String, out::Str
  
     r0_axis    = range(first(r0), last(r0), length=length(r0))
     itp_scaled = scale(interpolate(f0, BSpline(Cubic(Line(OnGrid())))), r0_axis)
+    dfitp(x) = Interpolations.gradient(itp_scaled, x)[1]
 
     rho_s   = first(r0)
     f_s   = f0[1]
     fp_s  = (f0[2] - f0[1]) / (r0[2] - r0[1])     # slope at the inner end (≈ -π/…, negative)
     rho_max = last(r0)
     
-	if mtail == 0
-		g(x) = 1/x^2
-	else
-		g(x) = exp(-m*x) * (m/x + 1/x^2)
-	end
+    g(x)  = mtail == 0 ? 1/x^2 : exp(-mtail*x) * (mtail/x + 1/x^2)
+    
+    dg(x) = mtail == 0 ? -2/x^3 : -exp(-mtail*x) * (mtail*(mtail/x + 1/x^2) + mtail/x^2 + 2/x^3)
 
 	Ctail = f0[end]/g(rho_max)
-
 
     function itp(x::Float64)
         if x < rho_s
@@ -425,6 +423,16 @@ function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String, out::Str
         end
     end
 
+    function ditp(x::Float64)
+        if x < rho_s
+            return f_s + fp_s*(x - rho_s) > Float64(pi) ? 0.0 : fp_s
+        elseif x > rho_max
+            return Ctail * dg(x)
+        else
+            return dfitp(x)
+        end
+    end
+
     println()
     println("#--------------------------------------------------#")
     println()
@@ -433,31 +441,47 @@ function interp_2sky_no_proy(rtc,r_vals::Array{Float64}, model::String, out::Str
 
     @showprogress 1 "Computing..." for r_idx in 1:length(r_vals)
         
-        matrix_f_plus = zeros(Float64, l1,l2,l3); matrix_f_minus = zeros(Float64, l1,l2,l3)
+        matrix_f_plus = zeros(Float64, l1,l2,l3)
+        matrix_f_minus = zeros(Float64, l1,l2,l3)
+        matrix_df_plus = zeros(Float64, l1,l2,l3)
+        matrix_df_minus = zeros(Float64, l1,l2,l3)
 
         r = r_vals[r_idx]
-        
-        @inbounds for k in 1:l3, j in 1:l2, i in 1:l1
-            temp_f_plus = itp(sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k] + r/2)^2) ) 
-            temp_f_minus = itp(sqrt(y1[i]^2 + y2[j]^2 + (y3[r_idx,k] - r/2)^2) )
-            
-            matrix_f_plus[i,j,k] = temp_f_plus
-            matrix_f_minus[i,j,k] = temp_f_minus
-        end 
 
+        @inbounds for k in 1:l3
+            zp = y3[r_idx,k] + r/2          # distance along z to the skyrmion at -r/2 (plus)
+            zm = y3[r_idx,k] - r/2          # distance along z to the skyrmion at +r/2 (minus)
+            for j in 1:l2, i in 1:l1
+                s  = y1[i]^2 + y2[j]^2
+                rp = sqrt(s + zp^2)
+                rm = sqrt(s + zm^2)
+
+                matrix_f_plus[i,j,k]   = itp(rp)
+                matrix_f_minus[i,j,k]  = itp(rm)
+                matrix_df_plus[i,j,k]  = ditp(rp)
+                matrix_df_minus[i,j,k] = ditp(rm)
+            end
+        end
+        
         #----- data saving
 
         if output_format == "jld2"
-            path1 = out*"/f_$(model)_plus_r=$(r_idx).jld2"; path2 = out*"/f_$(model)_minus_r=$(r_idx).jld2"
-            @save path1 matrix_f_plus; @save path2 matrix_f_minus
+            #path1 = out*"/f_$(model)_plus_r=$(r_idx).jld2"; path2 = out*"/f_$(model)_minus_r=$(r_idx).jld2"
+            #@save path1 matrix_f_plus; @save path2 matrix_f_minus
         elseif output_format == "npy"
-            npzwrite(out*"/f_$(model)_plus_r=$(r_idx).npy", matrix_f_plus); npzwrite(out*"/f_$(model)_minus_r=$(r_idx).npy", matrix_f_minus)
+            #npzwrite(out*"/f_$(model)_plus_r=$(r_idx).npy", matrix_f_plus); npzwrite(out*"/f_$(model)_minus_r=$(r_idx).npy", matrix_f_minus)
         elseif output_format == "jls"
             open(out*"/f_$(model)_plus_r=$(r_idx).jls", "w") do io
                 serialize(io, matrix_f_plus)
             end
             open(out*"/f_$(model)_minus_r=$(r_idx).jls", "w") do io
                 serialize(io, matrix_f_minus)
+            end
+            open(out*"/df_$(model)_plus_r=$(r_idx).jls", "w") do io
+                serialize(io, matrix_df_plus)
+            end
+            open(out*"/df_$(model)_minus_r=$(r_idx).jls", "w") do io
+                serialize(io, matrix_df_minus)
             end
         end
 
@@ -810,7 +834,7 @@ function spline_eval(spline, r)
     dx = r - x[i]
     return a[i] + b[i]*dx + c[i]*dx^2 + d[i]*dx^3
 end
-
+#==
 function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, grid_size::String,model::String,data, out::String,output_format::String)
 
     r0 = data[:,1]; f0 = data[:,2]
@@ -879,5 +903,4 @@ function interp_df_2sky_no_proy(rtc,r_vals::Array{Float64}, grid_size::String,mo
     end
 
 end
-
-
+==#
