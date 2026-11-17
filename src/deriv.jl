@@ -1152,15 +1152,17 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
     dirs1_1 = (Q1*sigma1)*inv(Q1); dirs1_2 = (Q1*sigma2)*inv(Q1); dirs1_3 = (Q1*sigma3)*inv(Q1)
     dirs2_1 = (Q2*sigma1)*inv(Q2); dirs2_2 = (Q2*sigma2)*inv(Q2); dirs2_3 = (Q2*sigma3)*inv(Q2)
 
-    dirs_m = (Q1*sigma[dir])*inv(Q1)
-    dirs_p = (Q2*sigma[dir])*inv(Q2)
+    dirs_m = (Q1*sigmas[dir])*inv(Q1)
+    dirs_p = (Q2*sigmas[dir])*inv(Q2)
 
     #----- evaluate field values
     
     dU_vals = zeros(Float64, l1,l2,l3,4)
 
+	epsilon = 1e-6
+
     @showprogress 1 "Computing..." for k in 1:l3
-        @inbounds @fastmath for j in 1:l2, i in 1:l1
+        @inbounds for j in 1:l2, i in 1:l1
                
             #----- params        
 
@@ -1177,10 +1179,32 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
             f_p = f_plus[i,j,k]
             f_m = f_minus[i,j,k]
 
-            cos_f_p = 1 - 0.5*f_p^2 + (1/24.)*f_p^4 - (1/720.)*f_p^6 + (1/40320.)*f_p^8 - (1/3638800.)*f_p^10
-            cos_f_m = 1 - 0.5*f_m^2 + (1/24.)*f_m^4 - (1/720.)*f_m^6 + (1/40320.)*f_m^8 - (1/3638800.)*f_m^10
-            sin_f_p = f_p - (1/6.)*f_p^3 + (1/120.)*f_p^5 - (1/5040.)*f_p^7 + (1/362880.)*f_p^9 - (1/39916800.)*f_p^11
-            sin_f_m = f_m - (1/6.)*f_m^3 + (1/120.)*f_m^5 - (1/5040.)*f_m^7 + (1/362880.)*f_m^9 - (1/39916800.)*f_m^11
+			df_m = df_minus[i,j,k]
+			df_p = df_plus[i,j,k]
+
+			sin_f_p, cos_f_p = sincos(f_p)
+			sin_f_m, cos_f_m = sincos(f_m)
+
+			dr_m = ar_m > epsilon ? -(y[dir]-xm[dir])/(2*ar_m) : 0.0
+			dr_p = ar_p > epsilon ?  (y[dir]+xm[dir])/(2*ar_p) : 0.0
+
+			#----- g = sin(f)/r and g' finite at the skyrmion centre
+
+            if ar_m > epsilon
+                g_m  = sin_f_m/ar_m
+                dg_m = (cos_f_m*df_m - g_m)/ar_m * dr_m
+            else
+                g_m  = cos_f_m*df_m
+                dg_m = 0.0
+            end
+
+            if ar_p > epsilon
+                g_p  = sin_f_p/ar_p
+                dg_p = (cos_f_p*df_p - g_p)/ar_p * dr_p
+            else
+                g_p  = cos_f_p*df_p
+                dg_p = 0.0
+            end
 
             #----- U1
 
@@ -1194,15 +1218,14 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
             tr_21 = sigma2[1,1]*Z1_11+sigma2[1,2]*Z1_21 + sigma2[2,1]*Z1_12+sigma2[2,2]*Z1_22
             tr_31 = sigma3[1,1]*Z1_11+sigma3[1,2]*Z1_21 + sigma3[2,1]*Z1_12+sigma3[2,2]*Z1_22
 
-            dirs1_param_1 = 0.5*(Z1_11+Z1_22); 
-            dirs1_param_2 = 0.5*tr_11; 
-            dirs1_param_3 = 0.5*tr_21; 
-            dirs1_param_4 = 0.5*tr_31
+            dirs1_param_2 = real(0.5*tr_11); 
+            dirs1_param_3 = real(0.5*tr_21); 
+            dirs1_param_4 = real(0.5*tr_31)
 
-            phi1_1 = cos_f_m + dirs1_param_1; 
-            phi1_2 = sin_f_m*(1/ar_m)*dirs1_param_2; 
-            phi1_3 = sin_f_m*(1/ar_m)*dirs1_param_3; 
-            phi1_4 = sin_f_m*(1/ar_m)*dirs1_param_4
+            phi1_1 = cos_f_m; 
+            phi1_2 = g_m*dirs1_param_2; 
+            phi1_3 = g_m*dirs1_param_3; 
+            phi1_4 = g_m*dirs1_param_4
 
             #----- U2
 
@@ -1216,15 +1239,15 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
             tr_22 = sigma2[1,1]*Z2_11+sigma2[1,2]*Z2_21 + sigma2[2,1]*Z2_12+sigma2[2,2]*Z2_22
             tr_32 = sigma3[1,1]*Z2_11+sigma3[1,2]*Z2_21 + sigma3[2,1]*Z2_12+sigma3[2,2]*Z2_22
 
-            dirs2_param_1 = 0.5*(Z2_11+Z2_22); 
-            dirs2_param_2 = 0.5*tr_12; 
-            dirs2_param_3 = 0.5*tr_22; 
-            dirs2_param_4 = 0.5*tr_32
+            dirs2_param_2 = real(0.5*tr_12); 
+            dirs2_param_3 = real(0.5*tr_22); 
+            dirs2_param_4 = real(0.5*tr_32)
             
-            phi2_1 = cos_f_p + dirs2_param_1; 
-            phi2_2 = sin_f_p*(1/ar_p)*dirs2_param_2; 
-            phi2_3 = sin_f_p*(1/ar_p)*dirs2_param_3; 
-            phi2_4 = sin_f_p*(1/ar_p)*dirs2_param_4
+            phi2_1 = cos_f_p; 
+            phi2_2 = g_p*dirs2_param_2; 
+            phi2_3 = g_p*dirs2_param_3; 
+            phi2_4 = g_p*dirs2_param_4
+			==#
 
             #----- symmetrized product field
 
@@ -1241,37 +1264,25 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
 
 			#----- derivs
 
-			dr_m = -(y[dir]-xm[dir])/(2*ar_m)
-			dr_p = (y[dir]+xm[dir])/(2*ar_p)
-
-			df_m = df_minus[i,j,k]
-			df_p = df_plus[i,j,k]
-
-			drinv_m = -(1/ar_m^2)*dr_m
-			drinv_p = -(1/ar_p^2)*dr_p
-
-			dsin_m = cos_f_m*df_m*dr_m
-			dsin_p = cos_f_p*df_p*dr_p
-
-            dtr_m1 = sigma1[1,1]*dirs_m[1,1]+sigma1[1,2]*dirs_m[2,1] + sigma1[2,1]*dirs_m[1,2]+sigma1[2,2]*dirs_m[2,2]
-			dtr_m2 = sigma2[1,1]*dirs_m[1,1]+sigma2[1,2]*dirs_m[2,1] + sigma2[2,1]*dirs_m[1,2]+sigma2[2,2]*dirs_m[2,2]
-            dtr_m3 = sigma3[1,1]*dirs_m[1,1]+sigma3[1,2]*dirs_m[2,1] + sigma3[2,1]*dirs_m[1,2]+sigma3[2,2]*dirs_m[2,2]
-
-            dtr_p1 = sigma1[1,1]*dirs_p[1,1]+sigma1[1,2]*dirs_p[2,1] + sigma1[2,1]*dirs_p[1,2]+sigma1[2,2]*dirs_p[2,2]
-			dtr_p2 = sigma2[1,1]*dirs_p[1,1]+sigma2[1,2]*dirs_p[2,1] + sigma2[2,1]*dirs_p[1,2]+sigma2[2,2]*dirs_p[2,2]
-            dtr_p3 = sigma3[1,1]*dirs_p[1,1]+sigma3[1,2]*dirs_p[2,1] + sigma3[2,1]*dirs_p[1,2]+sigma3[2,2]*dirs_p[2,2]
+			dtr_m1 = -0.25*real(sigma1[1,1]*dirs_m[1,1]+sigma1[1,2]*dirs_m[2,1] + sigma1[2,1]*dirs_m[1,2]+sigma1[2,2]*dirs_m[2,2])
+			dtr_m2 = -0.25*real(sigma2[1,1]*dirs_m[1,1]+sigma2[1,2]*dirs_m[2,1] + sigma2[2,1]*dirs_m[1,2]+sigma2[2,2]*dirs_m[2,2])
+			dtr_m3 = -0.25*real(sigma3[1,1]*dirs_m[1,1]+sigma3[1,2]*dirs_m[2,1] + sigma3[2,1]*dirs_m[1,2]+sigma3[2,2]*dirs_m[2,2])
+			
+			dtr_p1 =  0.25*real(sigma1[1,1]*dirs_p[1,1]+sigma1[1,2]*dirs_p[2,1] + sigma1[2,1]*dirs_p[1,2]+sigma1[2,2]*dirs_p[2,2])
+			dtr_p2 =  0.25*real(sigma2[1,1]*dirs_p[1,1]+sigma2[1,2]*dirs_p[2,1] + sigma2[2,1]*dirs_p[1,2]+sigma2[2,2]*dirs_p[2,2])
+			dtr_p3 =  0.25*real(sigma3[1,1]*dirs_p[1,1]+sigma3[1,2]*dirs_p[2,1] + sigma3[2,1]*dirs_p[1,2]+sigma3[2,2]*dirs_p[2,2])
 
 			#
 			
 			dphi1_1 = -sin_f_m*df_m*dr_m
-			dphi1_2 = drinv_m*sin_f_m*dirs_1_param_2 + (1/ar_m)*dsin_m*dirs_1_param_2 + (1/ar_m)*sin_f_m*dtr_m1
-			dphi1_3 = drinv_m*sin_f_m*dirs_1_param_3 + (1/ar_m)*dsin_m*dirs_1_param_3 + (1/ar_m)*sin_f_m*dtr_m2
-			dphi1_4 = drinv_m*sin_f_m*dirs_1_param_4 + (1/ar_m)*dsin_m*dirs_1_param_4 + (1/ar_m)*sin_f_m*dtr_m3
+			dphi1_2 = dg_m*dirs1_param_2 + g_m*dtr_m1
+			dphi1_3 = dg_m*dirs1_param_3 + g_m*dtr_m2
+			dphi1_4 = dg_m*dirs1_param_4 + g_m*dtr_m3
 
 			dphi2_1 = -sin_f_p*df_p*dr_p
-			dphi2_2 = drinv_p*sin_f_p*dirs_2_param_2 + (1/ar_p)*dsin_p*dirs_2_param_2 + (1/ar_p)*sin_f_p*dtr_p1
-			dphi2_3 = drinv_p*sin_f_p*dirs_2_param_3 + (1/ar_p)*dsin_p*dirs_2_param_3 + (1/ar_p)*sin_f_p*dtr_p2
-			dphi2_4 = drinv_p*sin_f_p*dirs_2_param_4 + (1/ar_p)*dsin_p*dirs_2_param_4 + (1/ar_p)*sin_f_p*dtr_p3
+			dphi2_2 = dg_p*dirs2_param_2 + g_p*dtr_p1
+			dphi2_3 = dg_p*dirs2_param_3 + g_p*dtr_p2
+			dphi2_4 = dg_p*dirs2_param_4 + g_p*dtr_p3
 
 			#----- deriv of phiS
 			
@@ -1282,20 +1293,20 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
 
 			#----- deriv of normalization
 
-			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/(N)
+			dN = (U_1*dphiS_1 + U_2*dphiS_2 + U_3*dphiS_3 + U_4*dphiS_4)/N
 
             #----- return
 
-            dU_vals[i,j,k,1] = real(dphiS_1*N - U_1*dN)/(N^2);
-			dU_vals[i,j,k,2] = real(dphiS_2*N - U_2*dN)/(N^2);
-			dU_vals[i,j,k,3] = real(dphiS_3*N - U_3*dN)/(N^2);
-			dU_vals[i,j,k,4] = real(dphiS_4*N - U_4*dN)/(N^2);
+            dU_vals[i,j,k,1] = (dphiS_1*N - U_1*dN)/(N^2);
+			dU_vals[i,j,k,2] = (dphiS_2*N - U_2*dN)/(N^2);
+			dU_vals[i,j,k,3] = (dphiS_3*N - U_3*dN)/(N^2);
+			dU_vals[i,j,k,4] = (dphiS_4*N - U_4*dN)/(N^2);
         
         end
     end
 
 	#----- interp missing NaN
-
+	#===
     if grid_size == "proy_80x80x160"
         dU_vals[40,40,40,:] .= dU_vals[40,40,39,:]
         dU_vals[40,40,120,:] .= dU_vals[40,40,119,:] 
@@ -1306,7 +1317,7 @@ function deriv_x_exact(dir::Int64,grid_size::String,y1::Array{Float64},y2::Array
         dU_vals[50,50,50,:] .= dU_vals[50,50,51,:]
         dU_vals[50,50,150,:] .= dU_vals[50,50,151,:]
     end
-
+	===#
     return dU_vals
 end
 
